@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ToolItem, Tool } from '../tools/ToolItem';
+import { ToolItem, Tool } from '@/components/mobile/tools/ToolItem';
 import {
   Bot, MessageSquare, Globe, HardDrive, Users,
   Terminal, Database, Code, GitBranch, Layers,

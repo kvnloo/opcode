@@ -1,34 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { render } from '../../utils/renderWithProviders';
 import { ConsolePane, ConsolePaneProps } from '@/components/mobile/workspace/panes/ConsolePane';
 import userEvent from '@testing-library/user-event';
 
-// Setup navigator.clipboard mock BEFORE any other setup
-// This must be done at module level for userEvent to work properly
-if (!Object.getOwnPropertyDescriptor(navigator, 'clipboard')) {
-  Object.defineProperty(navigator, 'clipboard', {
-    value: {
-      writeText: vi.fn().mockResolvedValue(undefined),
-      readText: vi.fn().mockResolvedValue(''),
-    },
-    writable: true,
-    configurable: true,
-  });
-}
-
-// Ensure window properties exist
-if (typeof window !== 'undefined') {
-  // Fix for "Right-hand side of 'instanceof' is not an object"
-  if (!window.HTMLElement) {
-    (window as any).HTMLElement = function() {};
-  }
-  if (!window.HTMLInputElement) {
-    (window as any).HTMLInputElement = function() {};
-  }
-  if (!window.HTMLTextAreaElement) {
-    (window as any).HTMLTextAreaElement = function() {};
-  }
-}
+// No special setup needed - renderWithProviders handles everything
 
 // Mock Tauri API
 const mockInvoke = vi.fn();
@@ -78,15 +54,14 @@ describe('ConsolePane', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock window.__TAURI__ for Tauri environment check
-    (global as any).window = { __TAURI__: undefined };
+    // Mock window.__TAURI__ for Tauri environment check (don't replace the whole window object!)
+    if (global.window) {
+      (global.window as any).__TAURI__ = undefined;
+    }
   });
 
   describe('Rendering', () => {
     it('renders console header with project path', () => {
-      // Skip clipboard setup for userEvent to avoid JSDOM issues
-      const user = userEvent.setup({ skipHover: true, skipAutoClose: true });
-
       render(<ConsolePane {...defaultProps} />);
 
       expect(screen.getByText('Console')).toBeInTheDocument();

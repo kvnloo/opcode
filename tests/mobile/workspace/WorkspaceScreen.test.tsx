@@ -1,35 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { WorkspaceScreen } from '@/screens/mobile/WorkspaceScreen';
 
 // Mock workspace store
+const mockSetActivePane = vi.fn();
+let mockActivePane = 'agent'; // Default initial state matches store
+
 vi.mock('@/stores/workspaceStore', () => ({
   useWorkspaceStore: vi.fn((selector) => {
     const state = {
-      activePane: 'console',
-      setActivePane: vi.fn(),
+      activePane: mockActivePane,
+      setActivePane: mockSetActivePane,
     };
     return selector ? selector(state) : state;
   }),
 }));
 
-// Mock components
-vi.mock('@/components/mobile/workspace/WorkspaceToolbar', () => ({
-  WorkspaceToolbar: ({ activePane, onPaneChange }: any) => (
-    <div data-testid="workspace-toolbar">
-      <button onClick={() => onPaneChange('console')}>Console</button>
-      <button onClick={() => onPaneChange('agent')}>Agent</button>
-      <button onClick={() => onPaneChange('deploy')}>Deploy</button>
-      <button onClick={() => onPaneChange('share')}>Share</button>
-      <button onClick={() => onPaneChange('preview')}>Preview</button>
-      <span data-testid="active-pane">{activePane}</span>
+// Mock AgentPaneContainer to avoid complex dependencies
+vi.mock('@/components/mobile/workspace/panes/AgentPaneContainer', () => ({
+  AgentPaneContainer: ({ projectId }: any) => (
+    <div data-testid="agent-pane">
+      <h2>Agent</h2>
+      <p>Project: {projectId}</p>
     </div>
   ),
 }));
 
 describe('WorkspaceScreen', () => {
   const mockOnBack = vi.fn();
-  const mockSetActivePane = vi.fn();
   const defaultProps = {
     projectId: 'test-project-123',
     projectName: 'My Test Project',
@@ -38,15 +37,8 @@ describe('WorkspaceScreen', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset store mock
-    const { useWorkspaceStore } = require('@/stores/workspaceStore');
-    useWorkspaceStore.mockImplementation((selector: any) => {
-      const state = {
-        activePane: 'console',
-        setActivePane: mockSetActivePane,
-      };
-      return selector ? selector(state) : state;
-    });
+    mockActivePane = 'agent'; // Reset to default
+    mockSetActivePane.mockClear();
   });
 
   describe('Rendering', () => {
@@ -54,7 +46,8 @@ describe('WorkspaceScreen', () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
       expect(screen.getByText('My Test Project')).toBeInTheDocument();
-      expect(screen.getByTestId('workspace-toolbar')).toBeInTheDocument();
+      // Toolbar is rendered with navigation role
+      expect(screen.getByRole('navigation')).toBeInTheDocument();
     });
 
     it('should render header with project name', () => {
@@ -88,32 +81,33 @@ describe('WorkspaceScreen', () => {
   });
 
   describe('Initial pane state', () => {
-    it('should show console pane initially', () => {
+    it('should show agent pane initially (default)', () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
-      const activePaneIndicator = screen.getByTestId('active-pane');
-      expect(activePaneIndicator).toHaveTextContent('console');
+      // Agent button should be active (aria-current="page")
+      const agentButton = screen.getByRole('button', { name: 'Agent' });
+      expect(agentButton).toHaveAttribute('aria-current', 'page');
     });
 
-    it('should render console pane content initially', () => {
+    it('should render agent pane content initially', () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
-      // Console pane shows terminal icon and text in the main content area
-      const consoleHeading = screen.getByRole('heading', { name: 'Console' });
-      expect(consoleHeading).toBeInTheDocument();
-      expect(screen.getByText(/Terminal output will appear here/)).toBeInTheDocument();
+      // Agent pane is the default active pane
+      const agentHeading = screen.getByRole('heading', { name: 'Agent' });
+      expect(agentHeading).toBeInTheDocument();
+      expect(screen.getByText(/test-project-123/)).toBeInTheDocument();
     });
   });
 
   describe('Pane switching', () => {
-    it('should switch to agent pane when toolbar button clicked', async () => {
+    it('should switch to console pane when toolbar button clicked', async () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
-      const agentButton = screen.getByRole('button', { name: 'Agent' });
-      fireEvent.click(agentButton);
+      const consoleButton = screen.getByRole('button', { name: 'Console' });
+      fireEvent.click(consoleButton);
 
       await waitFor(() => {
-        expect(mockSetActivePane).toHaveBeenCalledWith('agent');
+        expect(mockSetActivePane).toHaveBeenCalledWith('console');
       });
     });
 
@@ -150,28 +144,24 @@ describe('WorkspaceScreen', () => {
       });
     });
 
-    it('should update active pane indicator when switching', async () => {
-      const { useWorkspaceStore } = require('@/stores/workspaceStore');
-      useWorkspaceStore.mockImplementation((selector: any) => {
-        const state = {
-          activePane: 'agent',
-          setActivePane: mockSetActivePane,
-        };
-        return selector ? selector(state) : state;
-      });
+    it('should update active state when switching panes', async () => {
+      // Change mock to deploy pane
+      mockActivePane = 'deploy';
 
       render(<WorkspaceScreen {...defaultProps} />);
 
-      const activePaneIndicator = screen.getByTestId('active-pane');
-      expect(activePaneIndicator).toHaveTextContent('agent');
+      // Deploy button should be active
+      const deployButton = screen.getByRole('button', { name: 'Deploy' });
+      expect(deployButton).toHaveAttribute('aria-current', 'page');
     });
 
-    it('should animate pane transitions', async () => {
+    it('should render pane content area with proper structure', async () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
-      // Content area exists with animation wrapper
-      const contentArea = screen.getByTestId('workspace-toolbar').parentElement;
-      expect(contentArea).toBeInTheDocument();
+      // Content area exists and is properly structured
+      const navigation = screen.getByRole('navigation');
+      expect(navigation).toBeInTheDocument();
+      expect(navigation.parentElement).toHaveClass('h-screen', 'flex', 'flex-col');
     });
   });
 
@@ -201,70 +191,66 @@ describe('WorkspaceScreen', () => {
     });
 
     it('should toggle overlay when menu clicked', async () => {
+      const user = userEvent.setup();
       render(<WorkspaceScreen {...defaultProps} />);
 
       const moreButton = screen.getByLabelText('More options');
-      fireEvent.click(moreButton);
+      await user.click(moreButton);
 
       // Wait for dropdown to appear
-      await waitFor(() => {
-        expect(screen.getByText('Show Tools')).toBeInTheDocument();
-      });
+      const showToolsButton = await screen.findByText('Show Tools');
+      await user.click(showToolsButton);
 
-      const showToolsButton = screen.getByText('Show Tools');
-      fireEvent.click(showToolsButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('Project Tools')).toBeInTheDocument();
-      });
+      // Overlay should appear
+      expect(await screen.findByText('Project Tools')).toBeInTheDocument();
     });
 
     it('should close overlay when close button clicked', async () => {
+      const user = userEvent.setup();
       render(<WorkspaceScreen {...defaultProps} />);
 
       // Open overlay
       const moreButton = screen.getByLabelText('More options');
-      fireEvent.click(moreButton);
+      await user.click(moreButton);
 
-      await waitFor(() => {
-        const showToolsButton = screen.getByText('Show Tools');
-        fireEvent.click(showToolsButton);
-      });
+      const showToolsButton = await screen.findByText('Show Tools');
+      await user.click(showToolsButton);
 
-      await waitFor(() => {
-        expect(screen.getByText('Project Tools')).toBeInTheDocument();
-      });
+      // Overlay should appear
+      await screen.findByText('Project Tools');
 
       // Close overlay
       const closeButton = screen.getByRole('button', { name: /close/i });
-      fireEvent.click(closeButton);
+      await user.click(closeButton);
 
+      // Overlay should disappear
       await waitFor(() => {
         expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
       });
     });
 
     it('should close overlay when backdrop clicked', async () => {
+      const user = userEvent.setup();
       render(<WorkspaceScreen {...defaultProps} />);
 
       // Open overlay
       const moreButton = screen.getByLabelText('More options');
-      fireEvent.click(moreButton);
+      await user.click(moreButton);
 
-      await waitFor(() => {
-        const showToolsButton = screen.getByText('Show Tools');
-        fireEvent.click(showToolsButton);
-      });
+      const showToolsButton = await screen.findByText('Show Tools');
+      await user.click(showToolsButton);
 
-      await waitFor(() => {
-        expect(screen.getByText('Project Tools')).toBeInTheDocument();
-      });
+      // Overlay should appear
+      const projectToolsHeading = await screen.findByText('Project Tools');
+      expect(projectToolsHeading).toBeInTheDocument();
 
-      // Click backdrop (parent div)
-      const overlay = screen.getByText('Project Tools').closest('.absolute');
-      if (overlay) {
-        fireEvent.click(overlay);
+      // Click the backdrop by clicking outside the card content
+      // The backdrop is the parent motion.div with onClick={onClose}
+      const backdrop = projectToolsHeading.closest('.bg-card')?.parentElement;
+      if (backdrop) {
+        await user.click(backdrop);
 
+        // Overlay should disappear
         await waitFor(() => {
           expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
         });
@@ -272,20 +258,21 @@ describe('WorkspaceScreen', () => {
     });
 
     it('should display project ID in overlay', async () => {
+      const user = userEvent.setup();
       render(<WorkspaceScreen {...defaultProps} />);
 
       // Open overlay
       const moreButton = screen.getByLabelText('More options');
-      fireEvent.click(moreButton);
+      await user.click(moreButton);
 
-      await waitFor(() => {
-        const showToolsButton = screen.getByText('Show Tools');
-        fireEvent.click(showToolsButton);
-      });
+      const showToolsButton = await screen.findByText('Show Tools');
+      await user.click(showToolsButton);
 
-      await waitFor(() => {
-        expect(screen.getByText(/test-project-123/)).toBeInTheDocument();
-      });
+      // Project Tools heading should appear
+      await screen.findByText('Project Tools');
+
+      // Check for specific text in overlay (more specific than just project ID)
+      expect(screen.getByText(/Tools and utilities for project:/)).toBeInTheDocument();
     });
   });
 
@@ -311,7 +298,7 @@ describe('WorkspaceScreen', () => {
     it('should pass projectId to pane components', () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
-      // Project ID should be displayed in console pane
+      // Project ID should be displayed in agent pane (default active)
       expect(screen.getByText(/test-project-123/)).toBeInTheDocument();
     });
   });
@@ -349,16 +336,16 @@ describe('WorkspaceScreen', () => {
     });
 
     it('should show menu items when clicked', async () => {
+      const user = userEvent.setup();
       render(<WorkspaceScreen {...defaultProps} />);
 
       const moreButton = screen.getByLabelText('More options');
-      fireEvent.click(moreButton);
+      await user.click(moreButton);
 
-      await waitFor(() => {
-        expect(screen.getByText('Show Tools')).toBeInTheDocument();
-        expect(screen.getByText('Project Settings')).toBeInTheDocument();
-        expect(screen.getByText('Share Project')).toBeInTheDocument();
-      });
+      // Menu items should appear
+      expect(await screen.findByText('Show Tools')).toBeInTheDocument();
+      expect(screen.getByText('Project Settings')).toBeInTheDocument();
+      expect(screen.getByText('Share Project')).toBeInTheDocument();
     });
   });
 
@@ -373,7 +360,8 @@ describe('WorkspaceScreen', () => {
     it('should have semantic heading structure', () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
-      const heading = screen.getByRole('heading');
+      // Header has the project name as h1
+      const heading = screen.getByRole('heading', { level: 1 });
       expect(heading).toHaveTextContent('My Test Project');
     });
   });
@@ -407,7 +395,8 @@ describe('WorkspaceScreen', () => {
       const emptyNameProps = { ...defaultProps, projectName: '' };
       render(<WorkspaceScreen {...emptyNameProps} />);
 
-      expect(screen.getByTestId('workspace-toolbar')).toBeInTheDocument();
+      // Should still render the navigation/toolbar
+      expect(screen.getByRole('navigation')).toBeInTheDocument();
     });
 
     it('should handle special characters in project name', () => {

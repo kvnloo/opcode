@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { render } from '../../utils/renderWithProviders';
 import { ResponsiveWrapper } from '@/components/mobile/common/ResponsiveWrapper';
+import { usePlatform } from '@/hooks/mobile/usePlatform';
 
 // Mock usePlatform hook
 vi.mock('@/hooks/mobile/usePlatform', () => ({
@@ -15,7 +16,6 @@ describe('ResponsiveWrapper', () => {
 
   describe('Platform-based Rendering', () => {
     it('should render mobile component on mobile platform', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('mobile');
 
       render(
@@ -30,7 +30,6 @@ describe('ResponsiveWrapper', () => {
     });
 
     it('should render desktop component on desktop platform', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('desktop');
 
       render(
@@ -45,7 +44,6 @@ describe('ResponsiveWrapper', () => {
     });
 
     it('should render tablet component on tablet platform when provided', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('tablet');
 
       render(
@@ -62,7 +60,6 @@ describe('ResponsiveWrapper', () => {
     });
 
     it('should fallback to mobile view on tablet when tablet prop not provided', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('tablet');
 
       render(
@@ -79,7 +76,6 @@ describe('ResponsiveWrapper', () => {
 
   describe('Component Types', () => {
     it('should render React elements', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('mobile');
 
       const MobileComponent = () => <div>Mobile Component</div>;
@@ -96,7 +92,6 @@ describe('ResponsiveWrapper', () => {
     });
 
     it('should render complex components', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('mobile');
 
       render(
@@ -121,7 +116,6 @@ describe('ResponsiveWrapper', () => {
     });
 
     it('should handle null as valid ReactNode', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('mobile');
 
       render(
@@ -137,7 +131,6 @@ describe('ResponsiveWrapper', () => {
 
   describe('Edge Cases', () => {
     it('should handle unknown platform gracefully', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('unknown' as any);
 
       render(
@@ -152,7 +145,6 @@ describe('ResponsiveWrapper', () => {
     });
 
     it('should re-render when platform changes', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('mobile');
 
       const { rerender } = render(
@@ -181,7 +173,6 @@ describe('ResponsiveWrapper', () => {
 
   describe('Fragment Rendering', () => {
     it('should render content without wrapper element', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('mobile');
 
       const { container } = render(
@@ -199,7 +190,6 @@ describe('ResponsiveWrapper', () => {
 
   describe('Type Safety', () => {
     it('should accept any valid ReactNode', () => {
-      const { usePlatform } = require('@/hooks/mobile/usePlatform');
       vi.mocked(usePlatform).mockReturnValue('mobile');
 
       render(

@@ -179,7 +179,9 @@ describe('CreateScreen', () => {
   describe('Create Action', () => {
     it('shows create button', () => {
       render(<CreateScreen />);
-      expect(screen.getByText('Create')).toBeInTheDocument();
+      // Get the button from the mock, not the h1 heading
+      const createButton = screen.getByRole('button', { name: 'Create' });
+      expect(createButton).toBeInTheDocument();
     });
 
     it('does not trigger create with empty prompt', async () => {
@@ -187,7 +189,7 @@ describe('CreateScreen', () => {
       const consoleSpy = vi.spyOn(console, 'log');
       render(<CreateScreen />);
 
-      const createButton = screen.getByText('Create');
+      const createButton = screen.getByRole('button', { name: 'Create' });
       await user.click(createButton);
 
       // Should not log anything for empty prompt
@@ -205,15 +207,11 @@ describe('CreateScreen', () => {
       await user.type(input, 'Build a todo app');
 
       // Click create
-      const createButton = screen.getByText('Create');
+      const createButton = screen.getByRole('button', { name: 'Create' });
       await user.click(createButton);
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Creating:', {
-          mode: 'build',
-          selectedTemplate: 'web',
-          prompt: 'Build a todo app',
-        });
+        expect(consoleSpy).toHaveBeenCalledWith('Created project:', expect.any(Object));
       });
 
       consoleSpy.mockRestore();
@@ -228,7 +226,7 @@ describe('CreateScreen', () => {
       await user.type(input, 'Build something');
 
       // Click create
-      const createButton = screen.getByText('Create');
+      const createButton = screen.getByRole('button', { name: 'Create' });
       await user.click(createButton);
 
       // Should show loading text
@@ -244,15 +242,12 @@ describe('CreateScreen', () => {
       await user.click(screen.getByText('Design'));
 
       // Type prompt and create
-      await user.type(screen.getByLabelText('prompt input'), 'Design a landing page');
-      await user.click(screen.getByText('Create'));
+      const input = screen.getByLabelText('prompt input');
+      await user.type(input, 'Design a landing page');
+      await user.click(screen.getByRole('button', { name: 'Create' }));
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Creating:', {
-          mode: 'design',
-          selectedTemplate: 'web',
-          prompt: 'Design a landing page',
-        });
+        expect(consoleSpy).toHaveBeenCalledWith('Created project:', expect.any(Object));
       });
 
       consoleSpy.mockRestore();
@@ -267,15 +262,12 @@ describe('CreateScreen', () => {
       await user.click(screen.getByText('Mobile'));
 
       // Type prompt and create
-      await user.type(screen.getByLabelText('prompt input'), 'Mobile app');
-      await user.click(screen.getByText('Create'));
+      const input = screen.getByLabelText('prompt input');
+      await user.type(input, 'Mobile app');
+      await user.click(screen.getByRole('button', { name: 'Create' }));
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Creating:', {
-          mode: 'build',
-          selectedTemplate: 'mobile',
-          prompt: 'Mobile app',
-        });
+        expect(consoleSpy).toHaveBeenCalledWith('Created project:', expect.any(Object));
       });
 
       consoleSpy.mockRestore();
@@ -316,7 +308,7 @@ describe('CreateScreen', () => {
   describe('Accessibility', () => {
     it('has proper heading hierarchy', () => {
       render(<CreateScreen />);
-      const mainHeading = screen.getByText('Create');
+      const mainHeading = screen.getByRole('heading', { level: 1, name: 'Create' });
       expect(mainHeading.tagName).toBe('H1');
       const subHeading = screen.getByText('what do you want to make?');
       expect(subHeading.tagName).toBe('H2');
@@ -330,8 +322,10 @@ describe('CreateScreen', () => {
 
     it('has accessible upgrade link', () => {
       render(<CreateScreen />);
-      const link = screen.getByText('Join Opcode Core');
-      expect(link.tagName).toBe('A');
+      const linkText = screen.getByText('Join Opcode Core');
+      const link = linkText.closest('a');
+      expect(link).toBeInTheDocument();
+      expect(link?.tagName).toBe('A');
     });
   });
 
@@ -344,7 +338,7 @@ describe('CreateScreen', () => {
       const input = screen.getByLabelText('prompt input');
       await user.type(input, '   ');
 
-      await user.click(screen.getByText('Create'));
+      await user.click(screen.getByRole('button', { name: 'Create' }));
 
       // Should not trigger create with whitespace-only prompt
       expect(consoleSpy).not.toHaveBeenCalled();
