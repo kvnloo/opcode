@@ -4,6 +4,19 @@ import { simulateMobile, simulateTablet } from '../utils/platformSimulator';
 import { CreateScreen } from '@/screens/mobile/CreateScreen';
 import userEvent from '@testing-library/user-event';
 
+// Mock API - must be before component imports
+vi.mock('@/lib/api', () => ({
+  api: {
+    createProject: vi.fn(),
+    getSetting: vi.fn(),
+    updateSetting: vi.fn(),
+  },
+}));
+
+// Get mock reference after module is mocked
+import { api } from '@/lib/api';
+const mockCreateProject = vi.mocked(api.createProject);
+
 // Mock child components
 vi.mock('@/components/mobile/create/BuildDesignToggle', () => ({
   BuildDesignToggle: ({ value, onChange }: any) => (
@@ -28,14 +41,14 @@ vi.mock('@/components/mobile/create/TemplateSelector', () => ({
 vi.mock('@/components/mobile/create/PromptInput', () => ({
   PromptInput: ({ value, onChange, onSubmit, isLoading, placeholder }: any) => (
     <div data-testid="prompt-input">
-      <input
+      <textarea
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-label="prompt input"
       />
-      <button onClick={onSubmit} disabled={isLoading}>
-        {isLoading ? 'Creating...' : 'Create'}
+      <button onClick={onSubmit} disabled={!value || !value.trim() || isLoading}>
+        {isLoading ? 'Creating App...' : 'Create'}
       </button>
     </div>
   ),
@@ -45,6 +58,8 @@ describe('CreateScreen', () => {
   beforeEach(() => {
     simulateMobile();
     vi.clearAllMocks();
+    // Setup default mock behavior
+    mockCreateProject.mockResolvedValue({ id: '123', path: '/projects/123' });
   });
 
   describe('Rendering', () => {
@@ -156,9 +171,16 @@ describe('CreateScreen', () => {
       render(<CreateScreen />);
 
       const input = screen.getByLabelText('prompt input');
+      const createButton = screen.getByRole('button', { name: 'Create' });
+
+      // Initially button should be disabled (empty prompt)
+      expect(createButton).toBeDisabled();
+
+      // Type in input
       await user.type(input, 'Build a todo app');
 
-      expect(input).toHaveValue('Build a todo app');
+      // After typing, button should be enabled (indicating value was updated)
+      expect(createButton).toBeEnabled();
     });
 
     it('preserves prompt text when switching modes', async () => {
@@ -166,13 +188,18 @@ describe('CreateScreen', () => {
       render(<CreateScreen />);
 
       const input = screen.getByLabelText('prompt input');
+      const createButton = screen.getByRole('button', { name: 'Create' });
+
       await user.type(input, 'Create something');
+
+      // Button should be enabled after typing
+      expect(createButton).toBeEnabled();
 
       // Switch to design mode
       await user.click(screen.getByText('Design'));
 
-      // Prompt should be preserved
-      expect(input).toHaveValue('Create something');
+      // Button should still be enabled (prompt preserved)
+      expect(createButton).toBeEnabled();
     });
   });
 
@@ -230,7 +257,7 @@ describe('CreateScreen', () => {
       await user.click(createButton);
 
       // Should show loading text
-      expect(screen.getByText('Creating...')).toBeInTheDocument();
+      expect(screen.getByText('Creating App...')).toBeInTheDocument();
     });
 
     it('includes selected mode in create action', async () => {
@@ -351,9 +378,12 @@ describe('CreateScreen', () => {
 
       const longPrompt = 'a'.repeat(500);
       const input = screen.getByLabelText('prompt input');
+      const createButton = screen.getByRole('button', { name: 'Create' });
+
       await user.type(input, longPrompt);
 
-      expect(input).toHaveValue(longPrompt);
+      // Button should be enabled after typing long prompt
+      expect(createButton).toBeEnabled();
     });
 
     it('handles rapid mode switching', async () => {

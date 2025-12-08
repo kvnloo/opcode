@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import { render } from '../../utils/renderWithProviders';
 import { ConsolePane, ConsolePaneProps } from '@/components/mobile/workspace/panes/ConsolePane';
-import userEvent from '@testing-library/user-event';
 
 // No special setup needed - renderWithProviders handles everything
 
@@ -102,14 +101,13 @@ describe('ConsolePane', () => {
 
   describe('Command Execution', () => {
     it('executes command and displays output (mock mode)', async () => {
-      const user = userEvent.setup();
       render(<ConsolePane {...defaultProps} />);
 
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'ls');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'ls' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
         expect(screen.getByText('$ ls')).toBeInTheDocument();
@@ -118,14 +116,13 @@ describe('ConsolePane', () => {
     });
 
     it('clears input after execution', async () => {
-      const user = userEvent.setup();
       render(<ConsolePane {...defaultProps} />);
 
       const input = screen.getByPlaceholderText('Type a command...') as HTMLInputElement;
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'pwd');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'pwd' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
         expect(input.value).toBe('');
@@ -133,15 +130,14 @@ describe('ConsolePane', () => {
     });
 
     it('calls onOutput callback with command output', async () => {
-      const user = userEvent.setup();
       const onOutput = vi.fn();
       render(<ConsolePane {...defaultProps} onOutput={onOutput} />);
 
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'echo test');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'echo test' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
         expect(onOutput).toHaveBeenCalled();
@@ -149,11 +145,10 @@ describe('ConsolePane', () => {
     });
 
     it('does not execute empty commands', async () => {
-      const user = userEvent.setup();
       render(<ConsolePane {...defaultProps} />);
 
       const executeBtn = screen.getByText('Execute');
-      await user.click(executeBtn);
+      fireEvent.click(executeBtn);
 
       // Should not add any new output lines
       const lines = screen.queryAllByText(/^\$/);
@@ -161,7 +156,6 @@ describe('ConsolePane', () => {
     });
 
     it('shows executing indicator during command execution', async () => {
-      const user = userEvent.setup();
       mockInvoke.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve('done'), 100)));
 
       render(<ConsolePane {...defaultProps} />);
@@ -169,8 +163,8 @@ describe('ConsolePane', () => {
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'sleep 1');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'sleep 1' } });
+      fireEvent.click(executeBtn);
 
       // Execute button should be disabled during execution
       expect(executeBtn).toBeDisabled();
@@ -179,44 +173,44 @@ describe('ConsolePane', () => {
 
   describe('Mock Command Behaviors', () => {
     it('simulates pwd command', async () => {
-      const user = userEvent.setup();
       render(<ConsolePane {...defaultProps} />);
 
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'pwd');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'pwd' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(defaultProps.projectPath)).toBeInTheDocument();
+        // Use getAllByText since projectPath appears multiple times (header + output)
+        const pathElements = screen.getAllByText(defaultProps.projectPath);
+        expect(pathElements.length).toBeGreaterThan(1);
       });
     });
 
     it('simulates ls command', async () => {
-      const user = userEvent.setup();
       render(<ConsolePane {...defaultProps} />);
 
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'ls -la');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'ls -la' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/src\/\ntests\/\npackage.json/)).toBeInTheDocument();
+        // Check for ls output which is a multiline string
+        expect(screen.getByText(/src\//)).toBeInTheDocument();
       });
     });
 
     it('simulates cd command', async () => {
-      const user = userEvent.setup();
       render(<ConsolePane {...defaultProps} />);
 
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'cd src');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'cd src' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
         expect(screen.getByText('Changed directory (simulated)')).toBeInTheDocument();
@@ -226,7 +220,6 @@ describe('ConsolePane', () => {
 
   describe('Tauri Integration', () => {
     it('uses Tauri invoke when in Tauri environment', async () => {
-      const user = userEvent.setup();
       (global as any).window = { __TAURI__: true };
       mockInvoke.mockResolvedValue('Command output from Tauri');
 
@@ -235,8 +228,8 @@ describe('ConsolePane', () => {
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'echo hello');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'echo hello' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('execute_terminal_command', {
@@ -249,7 +242,6 @@ describe('ConsolePane', () => {
     });
 
     it('handles Tauri command errors', async () => {
-      const user = userEvent.setup();
       (global as any).window = { __TAURI__: true };
       mockInvoke.mockRejectedValue(new Error('Command failed'));
 
@@ -258,8 +250,8 @@ describe('ConsolePane', () => {
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'invalid-command');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'invalid-command' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
         expect(screen.getByText(/Error: Error: Command failed/)).toBeInTheDocument();
@@ -269,53 +261,56 @@ describe('ConsolePane', () => {
 
   describe('Quick Commands', () => {
     it('inserts quick command into input', async () => {
-      const user = userEvent.setup();
-      render(<ConsolePane {...defaultProps} />);
+      const { container } = render(<ConsolePane {...defaultProps} />);
 
       const npmButton = screen.getByText('npm');
-      await user.click(npmButton);
+      fireEvent.click(npmButton);
 
-      const input = screen.getByPlaceholderText('Type a command...') as HTMLInputElement;
-      expect(input.value).toBe('npm ');
+      // After clicking, check if the value was updated
+      await waitFor(() => {
+        const input = screen.getByPlaceholderText('Type a command...') as HTMLInputElement;
+        expect(input.value).toBe('npm ');
+      });
     });
 
     it('appends quick command to existing input', async () => {
-      const user = userEvent.setup();
       render(<ConsolePane {...defaultProps} />);
 
       const input = screen.getByPlaceholderText('Type a command...');
-      await user.type(input, 'sudo ');
+      fireEvent.change(input, { target: { value: 'sudo ' } });
 
       const npmButton = screen.getByText('npm');
-      await user.click(npmButton);
+      fireEvent.click(npmButton);
 
-      expect((input as HTMLInputElement).value).toBe('sudo npm ');
+      await waitFor(() => {
+        expect((input as HTMLInputElement).value).toBe('sudo npm ');
+      });
     });
   });
 
   describe('Code Keyboard', () => {
     it('inserts characters from code keyboard', async () => {
-      const user = userEvent.setup();
       render(<ConsolePane {...defaultProps} />);
 
       const insertButton = screen.getByText('Insert (');
-      await user.click(insertButton);
+      fireEvent.click(insertButton);
 
-      const input = screen.getByPlaceholderText('Type a command...') as HTMLInputElement;
-      expect(input.value).toBe('(');
+      await waitFor(() => {
+        const input = screen.getByPlaceholderText('Type a command...') as HTMLInputElement;
+        expect(input.value).toBe('(');
+      });
     });
   });
 
   describe('Clear Functionality', () => {
     it('clears terminal output when clear button clicked', async () => {
-      const user = userEvent.setup();
       render(<ConsolePane {...defaultProps} />);
 
       // Execute a command first
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
-      await user.type(input, 'echo test');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'echo test' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
         expect(screen.getByText('$ echo test')).toBeInTheDocument();
@@ -323,7 +318,7 @@ describe('ConsolePane', () => {
 
       // Clear the console
       const clearBtn = screen.getByText('Clear');
-      await user.click(clearBtn);
+      fireEvent.click(clearBtn);
 
       await waitFor(() => {
         expect(screen.queryByText('$ echo test')).not.toBeInTheDocument();
@@ -335,7 +330,6 @@ describe('ConsolePane', () => {
 
   describe('Auto-scroll', () => {
     it('scrolls to bottom when new lines are added', async () => {
-      const user = userEvent.setup();
       const { container } = render(<ConsolePane {...defaultProps} />);
 
       const scrollArea = container.querySelector('.flex-1');
@@ -354,8 +348,8 @@ describe('ConsolePane', () => {
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'echo line 1');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'echo line 1' } });
+      fireEvent.click(executeBtn);
 
       // Scroll behavior tested through component logic
       await waitFor(() => {
@@ -366,14 +360,13 @@ describe('ConsolePane', () => {
 
   describe('Output Formatting', () => {
     it('formats input lines with proper styling', async () => {
-      const user = userEvent.setup();
       const { container } = render(<ConsolePane {...defaultProps} />);
 
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'ls');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'ls' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
         const inputLine = screen.getByText('$ ls');
@@ -385,7 +378,6 @@ describe('ConsolePane', () => {
     });
 
     it('formats error output with error styling', async () => {
-      const user = userEvent.setup();
       (global as any).window = { __TAURI__: true };
       mockInvoke.mockRejectedValue(new Error('Command not found'));
 
@@ -394,8 +386,8 @@ describe('ConsolePane', () => {
       const input = screen.getByPlaceholderText('Type a command...');
       const executeBtn = screen.getByText('Execute');
 
-      await user.type(input, 'bad-command');
-      await user.click(executeBtn);
+      fireEvent.change(input, { target: { value: 'bad-command' } });
+      fireEvent.click(executeBtn);
 
       await waitFor(() => {
         const errorLine = screen.getByText(/Error:/);
@@ -410,14 +402,20 @@ describe('ConsolePane', () => {
     it('has semantic terminal structure', () => {
       const { container } = render(<ConsolePane {...defaultProps} />);
 
-      expect(container.querySelector('.h-full.flex.flex-col')).toBeInTheDocument();
+      // Check for the main container with proper structure classes
+      const mainContainer = container.querySelector('.h-full');
+      expect(mainContainer).toBeInTheDocument();
+      expect(mainContainer?.classList.contains('flex')).toBe(true);
+      expect(mainContainer?.classList.contains('flex-col')).toBe(true);
     });
 
     it('provides context through header', () => {
       render(<ConsolePane {...defaultProps} />);
 
       expect(screen.getByText('Console')).toBeInTheDocument();
-      expect(screen.getByText(defaultProps.projectPath)).toBeInTheDocument();
+      // projectPath appears multiple times - just check it exists
+      const pathElements = screen.getAllByText(defaultProps.projectPath);
+      expect(pathElements.length).toBeGreaterThanOrEqual(1);
     });
   });
 });

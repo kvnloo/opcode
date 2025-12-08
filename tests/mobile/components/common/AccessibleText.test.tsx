@@ -3,10 +3,15 @@ import { screen } from '@testing-library/react';
 import { render } from '../../utils/renderWithProviders';
 import { AccessibleText, ScreenReaderOnly, VisuallyHidden } from '@/components/mobile/common/AccessibleText';
 
-// Mock accessibility utilities
+// Mock accessibility utilities - use vi.hoisted for proper hoisting
+const { mockGetFontScalePreference, mockPrefersHighContrast } = vi.hoisted(() => ({
+  mockGetFontScalePreference: vi.fn(() => 1.2),
+  mockPrefersHighContrast: vi.fn(() => false),
+}));
+
 vi.mock('@/lib/mobile/accessibility', () => ({
-  getFontScalePreference: vi.fn(() => 1.2),
-  prefersHighContrast: vi.fn(() => false),
+  getFontScalePreference: mockGetFontScalePreference,
+  prefersHighContrast: mockPrefersHighContrast,
 }));
 
 describe('AccessibleText', () => {
@@ -57,8 +62,7 @@ describe('AccessibleText', () => {
 
   describe('Font Scaling', () => {
     it('should apply font scale from user preferences by default', () => {
-      const { getFontScalePreference } = require('@/lib/mobile/accessibility');
-      vi.mocked(getFontScalePreference).mockReturnValue(1.5);
+      mockGetFontScalePreference.mockReturnValue(1.5);
 
       render(<AccessibleText>Scaled text</AccessibleText>);
       const text = screen.getByText('Scaled text');
@@ -68,20 +72,23 @@ describe('AccessibleText', () => {
     });
 
     it('should not scale when scalable is false', () => {
-      const { getFontScalePreference } = require('@/lib/mobile/accessibility');
-      vi.mocked(getFontScalePreference).mockReturnValue(1.5);
+      mockGetFontScalePreference.mockReturnValue(1.5);
 
       render(<AccessibleText scalable={false}>Unscaled text</AccessibleText>);
       const text = screen.getByText('Unscaled text');
 
       // When scalable is false, fontSize should not be applied via inline style
       const style = text.getAttribute('style');
-      expect(style).not.toContain('font-size');
+      if (style) {
+        expect(style).not.toContain('font-size');
+      } else {
+        // If style is null/empty, it's also correct (no inline style)
+        expect(style).toBeFalsy();
+      }
     });
 
     it('should not apply scale when font scale is 1', () => {
-      const { getFontScalePreference } = require('@/lib/mobile/accessibility');
-      vi.mocked(getFontScalePreference).mockReturnValue(1);
+      mockGetFontScalePreference.mockReturnValue(1);
 
       render(<AccessibleText>Normal text</AccessibleText>);
       const text = screen.getByText('Normal text');
@@ -94,8 +101,7 @@ describe('AccessibleText', () => {
 
   describe('High Contrast Support', () => {
     it('should apply high contrast styles when enabled', () => {
-      const { prefersHighContrast } = require('@/lib/mobile/accessibility');
-      vi.mocked(prefersHighContrast).mockReturnValue(true);
+      mockPrefersHighContrast.mockReturnValue(true);
 
       render(<AccessibleText>High contrast text</AccessibleText>);
       const text = screen.getByText('High contrast text');
@@ -106,8 +112,7 @@ describe('AccessibleText', () => {
     });
 
     it('should not apply high contrast when highContrast is false', () => {
-      const { prefersHighContrast } = require('@/lib/mobile/accessibility');
-      vi.mocked(prefersHighContrast).mockReturnValue(true);
+      mockPrefersHighContrast.mockReturnValue(true);
 
       render(<AccessibleText highContrast={false}>Text</AccessibleText>);
       const text = screen.getByText('Text');
@@ -243,35 +248,34 @@ describe('ScreenReaderOnly', () => {
 
 describe('VisuallyHidden', () => {
   it('should render with sr-only class', () => {
-    render(<VisuallyHidden>Hidden text</VisuallyHidden>);
-    const container = screen.getByText('Hidden text').parentElement;
-    // The VisuallyHidden wraps in a div, not a span
-    expect(container).toBeInTheDocument();
-    expect(container?.className).toContain('sr-only');
+    const { container } = render(<VisuallyHidden>Hidden text</VisuallyHidden>);
+    const wrapper = container.querySelector('div');
+    expect(wrapper).toBeInTheDocument();
+    expect(wrapper?.className).toContain('sr-only');
   });
 
   it('should be focusable', () => {
-    render(<VisuallyHidden>Focusable hidden</VisuallyHidden>);
-    const container = screen.getByText('Focusable hidden').parentElement;
-    expect(container?.className).toContain('focus:not-sr-only');
+    const { container } = render(<VisuallyHidden>Focusable hidden</VisuallyHidden>);
+    const wrapper = container.querySelector('div');
+    expect(wrapper?.className).toContain('focus:not-sr-only');
   });
 
   it('should show on focus', () => {
-    render(<VisuallyHidden>Focus to show</VisuallyHidden>);
-    const container = screen.getByText('Focus to show').parentElement;
-    expect(container?.className).toContain('focus:absolute');
-    expect(container?.className).toContain('focus:z-50');
+    const { container } = render(<VisuallyHidden>Focus to show</VisuallyHidden>);
+    const wrapper = container.querySelector('div');
+    expect(wrapper?.className).toContain('focus:absolute');
+    expect(wrapper?.className).toContain('focus:z-50');
   });
 
   it('should apply custom className', () => {
-    render(<VisuallyHidden className="custom">Text</VisuallyHidden>);
-    const container = screen.getByText('Text').parentElement;
-    expect(container?.className).toContain('custom');
+    const { container } = render(<VisuallyHidden className="custom">Text</VisuallyHidden>);
+    const wrapper = container.querySelector('div');
+    expect(wrapper?.className).toContain('custom');
   });
 
   it('should have proper dark mode support', () => {
-    render(<VisuallyHidden>Text</VisuallyHidden>);
-    const container = screen.getByText('Text').parentElement;
-    expect(container?.className).toContain('dark:focus:bg-gray-900');
+    const { container } = render(<VisuallyHidden>Text</VisuallyHidden>);
+    const wrapper = container.querySelector('div');
+    expect(wrapper?.className).toContain('dark:focus:bg-gray-900');
   });
 });

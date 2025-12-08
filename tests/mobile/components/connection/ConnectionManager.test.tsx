@@ -13,7 +13,7 @@ describe('ConnectionManager', () => {
       render(<ConnectionManager />);
 
       expect(screen.getByText('Connection Mode')).toBeInTheDocument();
-      expect(screen.getByText('Local')).toBeInTheDocument();
+      expect(screen.getAllByText('Local')).toHaveLength(2); // One in card, one in status
       expect(screen.getByText('Tailscale SSH')).toBeInTheDocument();
       expect(screen.getByText('Claude Code Web')).toBeInTheDocument();
     });
@@ -38,7 +38,9 @@ describe('ConnectionManager', () => {
     it('selects local mode by default', () => {
       render(<ConnectionManager />);
 
-      const localCard = screen.getByText('Local').closest('.cursor-pointer');
+      // Get the heading "Local" which is inside the card
+      const localHeading = screen.getAllByText('Local').find(el => el.tagName === 'H3');
+      const localCard = localHeading?.closest('.cursor-pointer');
       expect(localCard).toHaveClass('ring-2', 'ring-primary');
     });
 
@@ -46,7 +48,8 @@ describe('ConnectionManager', () => {
       const user = userEvent.setup();
       render(<ConnectionManager />);
 
-      const tailscaleCard = screen.getByText('Tailscale SSH').closest('.cursor-pointer');
+      const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
+      const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
       await user.click(tailscaleCard!);
 
       expect(tailscaleCard).toHaveClass('ring-2', 'ring-primary');
@@ -57,7 +60,8 @@ describe('ConnectionManager', () => {
       const user = userEvent.setup();
       render(<ConnectionManager />);
 
-      const webCard = screen.getByText('Claude Code Web').closest('.cursor-pointer');
+      const webHeading = screen.getByRole('heading', { name: /claude code web/i });
+      const webCard = webHeading.closest('.cursor-pointer');
       await user.click(webCard!);
 
       expect(webCard).toHaveClass('ring-2', 'ring-primary');
@@ -72,12 +76,14 @@ describe('ConnectionManager', () => {
       expect(screen.queryByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)')).not.toBeInTheDocument();
 
       // Click tailscale
-      const tailscaleCard = screen.getByText('Tailscale SSH').closest('.cursor-pointer');
+      const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
+      const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
       await user.click(tailscaleCard!);
       expect(screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)')).toBeInTheDocument();
 
       // Click web
-      const webCard = screen.getByText('Claude Code Web').closest('.cursor-pointer');
+      const webHeading = screen.getByRole('heading', { name: /claude code web/i });
+      const webCard = webHeading.closest('.cursor-pointer');
       await user.click(webCard!);
       expect(screen.queryByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)')).not.toBeInTheDocument();
       expect(screen.getByText('Connect with GitHub')).toBeInTheDocument();
@@ -89,7 +95,8 @@ describe('ConnectionManager', () => {
       render(<ConnectionManager />);
 
       expect(screen.getByText('Connected')).toBeInTheDocument();
-      const localCard = screen.getByText('Local').closest('div.p-4');
+      const localHeading = screen.getAllByText('Local').find(el => el.tagName === 'H3');
+      const localCard = localHeading?.closest('div.p-4');
       const indicator = localCard?.querySelector('.bg-green-500.rounded-full');
       expect(indicator).toBeInTheDocument();
     });
@@ -100,7 +107,8 @@ describe('ConnectionManager', () => {
       render(<ConnectionManager />);
 
       // Switch to tailscale and fill form
-      const tailscaleCard = screen.getByText('Tailscale SSH').closest('.cursor-pointer');
+      const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
+      const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
       await user.click(tailscaleCard!);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
@@ -123,7 +131,8 @@ describe('ConnectionManager', () => {
       render(<ConnectionManager />);
 
       // Switch to tailscale and connect
-      const tailscaleCard = screen.getByText('Tailscale SSH').closest('.cursor-pointer');
+      const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
+      const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
       await user.click(tailscaleCard!);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
@@ -152,7 +161,8 @@ describe('ConnectionManager', () => {
       expect(screen.getByText('Connected')).toBeInTheDocument();
 
       // Switch to tailscale (not connected)
-      const tailscaleCard = screen.getByText('Tailscale SSH').closest('.cursor-pointer');
+      const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
+      const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
       await user.click(tailscaleCard!);
 
       // Status should still show local as connected since we haven't connected to tailscale
@@ -166,7 +176,8 @@ describe('ConnectionManager', () => {
       const user = userEvent.setup({ delay: null });
       render(<ConnectionManager />);
 
-      const tailscaleCard = screen.getByText('Tailscale SSH').closest('.cursor-pointer');
+      const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
+      const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
       await user.click(tailscaleCard!);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
@@ -194,7 +205,8 @@ describe('ConnectionManager', () => {
       const user = userEvent.setup({ delay: null });
       render(<ConnectionManager />);
 
-      const webCard = screen.getByText('Claude Code Web').closest('.cursor-pointer');
+      const webHeading = screen.getByRole('heading', { name: /claude code web/i });
+      const webCard = webHeading.closest('.cursor-pointer');
       await user.click(webCard!);
 
       const connectButton = screen.getByText('Connect with GitHub');
@@ -217,7 +229,8 @@ describe('ConnectionManager', () => {
     it('shows green indicator for connected mode', () => {
       render(<ConnectionManager />);
 
-      const localCard = screen.getByText('Local').closest('div.p-4');
+      const localHeading = screen.getAllByText('Local').find(el => el.tagName === 'H3');
+      const localCard = localHeading?.closest('div.p-4');
       const indicator = localCard?.querySelector('.bg-green-500.rounded-full');
       expect(indicator).toBeInTheDocument();
     });
@@ -227,15 +240,18 @@ describe('ConnectionManager', () => {
       render(<ConnectionManager />);
 
       // Local has indicator
-      let localCard = screen.getByText('Local').closest('div.p-4');
+      let localHeading = screen.getAllByText('Local').find(el => el.tagName === 'H3');
+      let localCard = localHeading?.closest('div.p-4');
       expect(localCard?.querySelector('.bg-green-500.rounded-full')).toBeInTheDocument();
 
       // Tailscale doesn't have indicator
-      let tailscaleCard = screen.getByText('Tailscale SSH').closest('div.p-4');
+      let tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
+      let tailscaleCard = tailscaleHeading.closest('div.p-4');
       expect(tailscaleCard?.querySelector('.bg-green-500.rounded-full')).not.toBeInTheDocument();
 
       // Web doesn't have indicator
-      let webCard = screen.getByText('Claude Code Web').closest('div.p-4');
+      let webHeading = screen.getByRole('heading', { name: /claude code web/i });
+      let webCard = webHeading.closest('div.p-4');
       expect(webCard?.querySelector('.bg-green-500.rounded-full')).not.toBeInTheDocument();
     });
 
@@ -243,13 +259,16 @@ describe('ConnectionManager', () => {
       render(<ConnectionManager />);
 
       // Check that icons are rendered (by checking parent divs with specific colors)
-      const serverIcon = screen.getByText('Local').parentElement?.querySelector('.bg-green-500\\/20');
+      const localHeading = screen.getAllByText('Local').find(el => el.tagName === 'H3');
+      const serverIcon = localHeading?.parentElement?.parentElement?.querySelector('.bg-green-500\\/20');
       expect(serverIcon).toBeInTheDocument();
 
-      const wifiIcon = screen.getByText('Tailscale SSH').parentElement?.querySelector('.bg-blue-500\\/20');
+      const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
+      const wifiIcon = tailscaleHeading.parentElement?.parentElement?.querySelector('.bg-blue-500\\/20');
       expect(wifiIcon).toBeInTheDocument();
 
-      const cloudIcon = screen.getByText('Claude Code Web').parentElement?.querySelector('.bg-purple-500\\/20');
+      const webHeading = screen.getByRole('heading', { name: /claude code web/i });
+      const cloudIcon = webHeading.parentElement?.parentElement?.querySelector('.bg-purple-500\\/20');
       expect(cloudIcon).toBeInTheDocument();
     });
   });
@@ -266,7 +285,8 @@ describe('ConnectionManager', () => {
       const user = userEvent.setup();
       render(<ConnectionManager />);
 
-      const tailscaleCard = screen.getByText('Tailscale SSH').closest('.cursor-pointer');
+      const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
+      const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
 
       // Should be clickable (accessible)
       await user.click(tailscaleCard!);

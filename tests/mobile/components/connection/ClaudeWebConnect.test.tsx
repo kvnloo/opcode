@@ -97,14 +97,14 @@ describe('ClaudeWebConnect', () => {
     it('disables button when connecting', () => {
       render(<ClaudeWebConnect onConnect={mockOnConnect} isConnecting={true} />);
 
-      const button = screen.getByText('Connecting...');
+      const button = screen.getByRole('button', { name: /connecting/i });
       expect(button).toBeDisabled();
     });
 
     it('enables button when not connecting', () => {
       render(<ClaudeWebConnect onConnect={mockOnConnect} isConnecting={false} />);
 
-      const button = screen.getByText('Connect with GitHub');
+      const button = screen.getByRole('button', { name: /connect with github/i });
       expect(button).not.toBeDisabled();
     });
 
@@ -129,7 +129,7 @@ describe('ClaudeWebConnect', () => {
     it('applies correct base styles to button', () => {
       render(<ClaudeWebConnect onConnect={mockOnConnect} />);
 
-      const button = screen.getByText('Connect with GitHub');
+      const button = screen.getByRole('button', { name: /connect with github/i });
       expect(button).toHaveClass(
         'w-full',
         'py-3',
@@ -143,7 +143,7 @@ describe('ClaudeWebConnect', () => {
     it('applies disabled styles when button is disabled', () => {
       render(<ClaudeWebConnect onConnect={mockOnConnect} isConnecting={true} />);
 
-      const button = screen.getByText('Connecting...');
+      const button = screen.getByRole('button', { name: /connecting/i });
       expect(button).toHaveClass('disabled:opacity-50');
       expect(button).toBeDisabled();
     });
@@ -151,7 +151,7 @@ describe('ClaudeWebConnect', () => {
     it('has flex layout for icon and text', () => {
       render(<ClaudeWebConnect onConnect={mockOnConnect} />);
 
-      const button = screen.getByText('Connect with GitHub');
+      const button = screen.getByRole('button', { name: /connect with github/i });
       expect(button).toHaveClass('flex', 'items-center', 'justify-center', 'gap-2');
     });
   });
@@ -173,13 +173,13 @@ describe('ClaudeWebConnect', () => {
       const user = userEvent.setup();
       const { rerender } = render(<ClaudeWebConnect onConnect={mockOnConnect} isConnecting={false} />);
 
-      const button = screen.getByText('Connect with GitHub');
+      const button = screen.getByRole('button', { name: /connect with github/i });
       await user.click(button);
 
       // Simulate connecting state
       rerender(<ClaudeWebConnect onConnect={mockOnConnect} isConnecting={true} />);
 
-      const connectingButton = screen.getByText('Connecting...');
+      const connectingButton = screen.getByRole('button', { name: /connecting/i });
       expect(connectingButton).toBeDisabled();
     });
 
@@ -222,7 +222,7 @@ describe('ClaudeWebConnect', () => {
     it('button has proper button role', () => {
       render(<ClaudeWebConnect onConnect={mockOnConnect} />);
 
-      const button = screen.getByText('Connect with GitHub');
+      const button = screen.getByRole('button', { name: /connect with github/i });
       expect(button.tagName).toBe('BUTTON');
     });
 
@@ -241,7 +241,7 @@ describe('ClaudeWebConnect', () => {
     it('disables interaction during loading', () => {
       render(<ClaudeWebConnect onConnect={mockOnConnect} isConnecting={true} />);
 
-      const button = screen.getByText('Connecting...');
+      const button = screen.getByRole('button', { name: /connecting/i });
       expect(button).toHaveAttribute('disabled');
     });
   });

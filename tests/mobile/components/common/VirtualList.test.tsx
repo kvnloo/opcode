@@ -262,25 +262,37 @@ describe('VirtualList', () => {
 
   describe('Performance', () => {
     it('should use ResizeObserver to measure container', () => {
-      // Spy on ResizeObserver constructor
-      const observeSpy = vi.fn();
-      const disconnectSpy = vi.fn();
-      global.ResizeObserver = vi.fn().mockImplementation(() => ({
-        observe: observeSpy,
-        unobserve: vi.fn(),
-        disconnect: disconnectSpy,
-      }));
+      // Store the original ResizeObserver
+      const OriginalResizeObserver = global.ResizeObserver;
 
-      render(
-        <VirtualList
-          items={mockItems.slice(0, 10)}
-          itemHeight={50}
-          renderItem={(item) => <div>{item.text}</div>}
-        />
-      );
+      try {
+        // Spy on ResizeObserver constructor
+        const observeSpy = vi.fn();
+        const disconnectSpy = vi.fn();
 
-      expect(global.ResizeObserver).toHaveBeenCalled();
-      expect(observeSpy).toHaveBeenCalled();
+        // Create a proper constructor function
+        const ResizeObserverMock = vi.fn(function(this: any) {
+          this.observe = observeSpy;
+          this.unobserve = vi.fn();
+          this.disconnect = disconnectSpy;
+        }) as any;
+
+        global.ResizeObserver = ResizeObserverMock;
+
+        render(
+          <VirtualList
+            items={mockItems.slice(0, 10)}
+            itemHeight={50}
+            renderItem={(item) => <div>{item.text}</div>}
+          />
+        );
+
+        expect(ResizeObserverMock).toHaveBeenCalled();
+        expect(observeSpy).toHaveBeenCalled();
+      } finally {
+        // Restore original - happens even if test fails
+        global.ResizeObserver = OriginalResizeObserver;
+      }
     });
 
     it('should calculate item positions efficiently', () => {

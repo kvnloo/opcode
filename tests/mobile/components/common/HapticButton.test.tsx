@@ -4,30 +4,26 @@ import { render } from '../../utils/renderWithProviders';
 import { tap } from '../../utils/gestures';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 
-// Mock the useHaptics hook - must declare outside but use inside factory
-let mockTrigger: ReturnType<typeof vi.fn>;
-let mockUseHaptics: ReturnType<typeof vi.fn>;
-
-vi.mock('@/hooks/mobile/useHaptics', () => {
-  mockTrigger = vi.fn();
-  mockUseHaptics = vi.fn(() => ({
-    trigger: mockTrigger,
-    isSupported: true,
-  }));
-
+// Mock the useHaptics hook - use vi.hoisted for proper hoisting
+const { mockTrigger, mockUseHaptics } = vi.hoisted(() => {
+  const trigger = vi.fn();
   return {
-    useHaptics: mockUseHaptics,
+    mockTrigger: trigger,
+    mockUseHaptics: vi.fn(() => ({
+      trigger,
+      isSupported: true,
+    })),
   };
 });
+
+vi.mock('@/hooks/mobile/useHaptics', () => ({
+  useHaptics: mockUseHaptics,
+}));
 
 describe('HapticButton', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockTrigger.mockClear();
-    mockUseHaptics.mockReturnValue({
-      trigger: mockTrigger,
-      isSupported: true,
-    });
   });
 
   describe('Rendering', () => {

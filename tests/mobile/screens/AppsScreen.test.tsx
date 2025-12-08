@@ -46,9 +46,10 @@ vi.mock('@/stores/workspaceStore', () => ({
 
 // Mock session store
 const mockFetchProjects = vi.fn();
+const mockProjects = vi.fn(() => []);
 vi.mock('@/stores/sessionStore', () => ({
   useSessionStore: () => ({
-    projects: [],
+    projects: mockProjects(),
     fetchProjects: mockFetchProjects,
     isLoadingProjects: false,
     error: null,
@@ -79,8 +80,13 @@ describe('AppsScreen', () => {
     });
 
     it('renders project list component', () => {
+      // Mock having projects to trigger ProjectList render
+      mockProjects.mockReturnValue([
+        { id: '1', path: '/projects/test', createdAt: '2024-01-01', updatedAt: '2024-01-01' }
+      ]);
       render(<AppsScreen />);
       expect(screen.getByTestId('project-list')).toBeInTheDocument();
+      mockProjects.mockReturnValue([]);
     });
 
     it('has proper layout structure', () => {
@@ -151,10 +157,9 @@ describe('AppsScreen', () => {
     });
 
     it('passes empty projects array to ProjectList', () => {
+      // Real component doesn't render ProjectList when empty, it shows empty state
       render(<AppsScreen />);
-      const projectList = screen.getByTestId('project-list');
-      expect(projectList).toBeInTheDocument();
-      // Mock shows "No apps yet" but real component shows "No projects yet"
+      expect(screen.queryByTestId('project-list')).not.toBeInTheDocument();
       expect(screen.getByText('No projects yet')).toBeInTheDocument();
     });
   });
@@ -167,17 +172,27 @@ describe('AppsScreen', () => {
     });
 
     it('scroll area takes remaining height', () => {
+      // Mock having projects to trigger ProjectList render
+      mockProjects.mockReturnValue([
+        { id: '1', path: '/projects/test', createdAt: '2024-01-01', updatedAt: '2024-01-01' }
+      ]);
       const { container } = render(<AppsScreen />);
       const scrollArea = screen.getByTestId('project-list').closest('.flex-1');
       expect(scrollArea).toBeInTheDocument();
+      mockProjects.mockReturnValue([]);
     });
   });
 
   describe('Layout and Spacing', () => {
     it('has proper spacing around project list', () => {
+      // Mock having projects to trigger ProjectList render
+      mockProjects.mockReturnValue([
+        { id: '1', path: '/projects/test', createdAt: '2024-01-01', updatedAt: '2024-01-01' }
+      ]);
       render(<AppsScreen />);
       const projectListContainer = screen.getByTestId('project-list').parentElement;
       expect(projectListContainer).toHaveClass('space-y-4');
+      mockProjects.mockReturnValue([]);
     });
 
     it('uses background color', () => {
@@ -199,14 +214,16 @@ describe('AppsScreen', () => {
       simulateMobile();
       render(<AppsScreen />);
       expect(screen.getByText('Apps')).toBeInTheDocument();
-      expect(screen.getByTestId('project-list')).toBeInTheDocument();
+      // Empty state by default
+      expect(screen.getByText('No projects yet')).toBeInTheDocument();
     });
 
     it('renders correctly on tablet', () => {
       simulateTablet();
       render(<AppsScreen />);
       expect(screen.getByText('Apps')).toBeInTheDocument();
-      expect(screen.getByTestId('project-list')).toBeInTheDocument();
+      // Empty state by default
+      expect(screen.getByText('No projects yet')).toBeInTheDocument();
     });
 
     it('maintains layout on orientation change', () => {
@@ -245,11 +262,16 @@ describe('AppsScreen', () => {
 
   describe('Integration', () => {
     it('renders all main sections together', () => {
+      // Mock having projects to trigger ProjectList render
+      mockProjects.mockReturnValue([
+        { id: '1', path: '/projects/test', createdAt: '2024-01-01', updatedAt: '2024-01-01' }
+      ]);
       render(<AppsScreen />);
 
       expect(screen.getByRole('heading', { name: 'Apps' })).toBeInTheDocument();
       expect(screen.getByText('All Apps')).toBeInTheDocument();
       expect(screen.getByTestId('project-list')).toBeInTheDocument();
+      mockProjects.mockReturnValue([]);
     });
 
     it('maintains proper visual hierarchy', () => {
@@ -295,7 +317,9 @@ describe('AppsScreen', () => {
 
     it('handles empty project array gracefully', () => {
       render(<AppsScreen />);
-      expect(screen.getByTestId('project-list')).toBeInTheDocument();
+      // Shows empty state, not project list
+      expect(screen.queryByTestId('project-list')).not.toBeInTheDocument();
+      expect(screen.getByText('No projects yet')).toBeInTheDocument();
     });
   });
 

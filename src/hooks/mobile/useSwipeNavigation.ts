@@ -40,18 +40,26 @@ export function useSwipeNavigation<T extends string>({
   }, [items, currentIndex]);
 
   const goNext = useCallback(() => {
-    if (canGoNext) {
-      setDirection('right');
-      setCurrentItem(items[currentIndex + 1]);
-    }
-  }, [canGoNext, items, currentIndex]);
+    setCurrentItem(prevItem => {
+      const prevIndex = items.indexOf(prevItem);
+      if (prevIndex < items.length - 1) {
+        setDirection('right');
+        return items[prevIndex + 1];
+      }
+      return prevItem;
+    });
+  }, [items]);
 
   const goPrevious = useCallback(() => {
-    if (canGoPrevious) {
-      setDirection('left');
-      setCurrentItem(items[currentIndex - 1]);
-    }
-  }, [canGoPrevious, items, currentIndex]);
+    setCurrentItem(prevItem => {
+      const prevIndex = items.indexOf(prevItem);
+      if (prevIndex > 0) {
+        setDirection('left');
+        return items[prevIndex - 1];
+      }
+      return prevItem;
+    });
+  }, [items]);
 
   const handleDragEnd = useCallback((_event: any, info: PanInfo) => {
     const { offset, velocity } = info;

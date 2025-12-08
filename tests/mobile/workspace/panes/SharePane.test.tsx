@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { SharePane, SharePaneProps, Collaborator } from '@/components/mobile/workspace/panes/SharePane';
-import userEvent from '@testing-library/user-event';
 
 // Mock useHaptics hook
 vi.mock('@/hooks/mobile/useHaptics', () => ({
@@ -113,23 +112,23 @@ describe('SharePane', () => {
 
   describe('Copy Link', () => {
     it('copies URL to clipboard when clicked', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       // Get the first Copy Link button (in Share your app section)
       const copyButtons = screen.getAllByText('Copy Link');
-      await user.click(copyButtons[0]);
+      fireEvent.click(copyButtons[0]);
 
-      expect(writeTextMock).toHaveBeenCalledWith(defaultProps.projectUrl);
-      expect(defaultProps.onCopyLink).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(writeTextMock).toHaveBeenCalledWith(defaultProps.projectUrl);
+        expect(defaultProps.onCopyLink).toHaveBeenCalled();
+      });
     });
 
     it('shows copied state after clicking', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       const copyButton = screen.getAllByText('Copy Link')[0];
-      await user.click(copyButton);
+      fireEvent.click(copyButton);
 
       await waitFor(() => {
         expect(screen.getAllByText('Copied!')[0]).toBeInTheDocument();
@@ -137,13 +136,12 @@ describe('SharePane', () => {
     });
 
     it('resets copied state after 2 seconds', async () => {
-      const user = userEvent.setup();
       vi.useFakeTimers();
 
       render(<SharePane {...defaultProps} />);
 
       const copyButton = screen.getAllByText('Copy Link')[0];
-      await user.click(copyButton);
+      fireEvent.click(copyButton);
 
       expect(screen.getAllByText('Copied!')[0]).toBeInTheDocument();
 
@@ -180,7 +178,6 @@ describe('SharePane', () => {
     });
 
     it('calls navigator.share with correct data', async () => {
-      const user = userEvent.setup();
       const mockShare = vi.fn().mockResolvedValue(undefined);
       (global.navigator as any).share = mockShare;
 
@@ -188,14 +185,16 @@ describe('SharePane', () => {
 
       const shareButton = screen.getAllByText('Share').find(el => el.tagName === 'BUTTON');
       expect(shareButton).toBeDefined();
-      await user.click(shareButton!);
+      fireEvent.click(shareButton!);
 
-      expect(mockShare).toHaveBeenCalledWith({
-        title: defaultProps.projectName,
-        text: `Check out my project: ${defaultProps.projectName}`,
-        url: defaultProps.projectUrl,
+      await waitFor(() => {
+        expect(mockShare).toHaveBeenCalledWith({
+          title: defaultProps.projectName,
+          text: `Check out my project: ${defaultProps.projectName}`,
+          url: defaultProps.projectUrl,
+        });
+        expect(defaultProps.onShare).toHaveBeenCalledWith('system');
       });
-      expect(defaultProps.onShare).toHaveBeenCalledWith('system');
     });
   });
 
@@ -216,7 +215,6 @@ describe('SharePane', () => {
     });
 
     it('calls onInvite with email and permission', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       const emailInput = screen.getByPlaceholderText('email@example.com');
@@ -228,15 +226,16 @@ describe('SharePane', () => {
         btn.querySelector('svg') && btn.parentElement?.querySelector('input[type="email"]')
       );
 
-      await user.type(emailInput, 'newuser@example.com');
-      await user.selectOptions(invitePermissionSelect, 'view');
-      await user.click(inviteButton!);
+      fireEvent.change(emailInput, { target: { value: 'newuser@example.com' } });
+      fireEvent.change(invitePermissionSelect, { target: { value: 'view' } });
+      fireEvent.click(inviteButton!);
 
-      expect(defaultProps.onInvite).toHaveBeenCalledWith('newuser@example.com', 'view');
+      await waitFor(() => {
+        expect(defaultProps.onInvite).toHaveBeenCalledWith('newuser@example.com', 'view');
+      });
     });
 
     it('clears email input after successful invite', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       const emailInput = screen.getByPlaceholderText('email@example.com') as HTMLInputElement;
@@ -245,8 +244,8 @@ describe('SharePane', () => {
         btn.querySelector('svg') && btn.parentElement?.querySelector('input[type="email"]')
       );
 
-      await user.type(emailInput, 'user@example.com');
-      await user.click(inviteButton!);
+      fireEvent.change(emailInput, { target: { value: 'user@example.com' } });
+      fireEvent.click(inviteButton!);
 
       await waitFor(() => {
         expect(emailInput.value).toBe('');
@@ -264,11 +263,10 @@ describe('SharePane', () => {
     });
 
     it('enables invite button for valid email', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       const emailInput = screen.getByPlaceholderText('email@example.com');
-      await user.type(emailInput, 'valid@example.com');
+      fireEvent.change(emailInput, { target: { value: 'valid@example.com' } });
 
       await waitFor(() => {
         const inviteButtons = document.querySelectorAll('button');
@@ -309,25 +307,27 @@ describe('SharePane', () => {
     });
 
     it('calls onUpdatePermission when permission changed', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       const permissionSelects = screen.getAllByRole('combobox');
       const collaboratorPermission = permissionSelects[1]; // First is invite, rest are collaborators
 
-      await user.selectOptions(collaboratorPermission, 'admin');
+      fireEvent.change(collaboratorPermission, { target: { value: 'admin' } });
 
-      expect(defaultProps.onUpdatePermission).toHaveBeenCalledWith('1', 'admin');
+      await waitFor(() => {
+        expect(defaultProps.onUpdatePermission).toHaveBeenCalledWith('1', 'admin');
+      });
     });
 
     it('calls onRemoveCollaborator when remove button clicked', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       const removeButtons = screen.getAllByLabelText('Remove collaborator');
-      await user.click(removeButtons[0]);
+      fireEvent.click(removeButtons[0]);
 
-      expect(defaultProps.onRemoveCollaborator).toHaveBeenCalledWith('1');
+      await waitFor(() => {
+        expect(defaultProps.onRemoveCollaborator).toHaveBeenCalledWith('1');
+      });
     });
 
     it('does not show remove button when handler not provided', () => {
