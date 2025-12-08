@@ -5,12 +5,8 @@ import { swipeDown, swipeUp } from '../../utils/gestures';
 import { VirtualList, VirtualListItem, useItemHeight } from '@/components/mobile/common/VirtualList';
 import { act, renderHook } from '@testing-library/react';
 
-// Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+// ResizeObserver is mocked globally in setup.ts - no local mock needed
+// The global MockResizeObserver class provides observe, unobserve, and disconnect methods
 
 const mockItems = Array.from({ length: 100 }, (_, i) => ({
   id: i,

@@ -723,6 +723,51 @@ vi.mock('@/stores/workspaceStore', () => {
   };
 });
 
+// Mock connectionStore with default test data
+const mockConnectionStoreState = vi.hoisted(() => () => {
+  return {
+    mode: 'local' as const,
+    status: 'connected' as const,
+    error: null,
+    config: { mode: 'local' as const },
+    connectedAt: new Date(),
+    tailscaleHost: null,
+    tailscaleUsername: null,
+    tailscalePort: 22,
+    webApiToken: null,
+    webBaseUrl: 'https://api.claude.ai',
+    setMode: vi.fn(),
+    connect: vi.fn().mockResolvedValue(undefined),
+    disconnect: vi.fn().mockResolvedValue(undefined),
+    updateConfig: vi.fn(),
+    updateTailscaleConfig: vi.fn(),
+    updateWebConfig: vi.fn(),
+    clearError: vi.fn(),
+    resetConnection: vi.fn(),
+  };
+});
+
+vi.mock('@/stores/connectionStore', () => ({
+  useConnectionStore: Object.assign(
+    vi.fn((selector?: any) => {
+      const state = mockConnectionStoreState();
+      return selector ? selector(state) : state;
+    }),
+    {
+      getState: () => mockConnectionStoreState(),
+      setState: vi.fn(),
+      subscribe: vi.fn(),
+      destroy: vi.fn(),
+    }
+  ),
+  useConnectionMode: vi.fn(() => 'local'),
+  useConnectionStatus: vi.fn(() => 'connected'),
+  useConnectionError: vi.fn(() => null),
+  useIsConnected: vi.fn(() => true),
+  useTailscaleConfig: vi.fn(() => ({ host: null, username: null, port: 22 })),
+  useWebConfig: vi.fn(() => ({ apiToken: null, baseUrl: 'https://api.claude.ai' })),
+}));
+
 // Fix for @testing-library/user-event clipboard access
 // user-event tries to access view.ownerDocument.defaultView.navigator.clipboard
 // Ensure all elements have proper ownerDocument.defaultView
