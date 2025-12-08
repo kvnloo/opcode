@@ -26,26 +26,31 @@ export function ProfileCard({ user }: ProfileCardProps) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: 'var(--mobile-space-6)',
-        gap: 'var(--mobile-space-4)',
+        paddingTop: 'var(--mobile-space-8)', // 32px top padding per Replit
+        paddingBottom: 'var(--mobile-space-6)',
+        paddingLeft: 'var(--mobile-space-4)',
+        paddingRight: 'var(--mobile-space-4)',
+        gap: 'var(--mobile-space-2)', // 8px between elements
       }}
     >
-      {/* Avatar - Large, centered */}
+      {/* Avatar - 96x96px, full circle */}
       <div
         style={{
-          width: 'var(--mobile-avatar-xl)',
-          height: 'var(--mobile-avatar-xl)',
+          width: 'var(--mobile-avatar-xl)', // 96px
+          height: 'var(--mobile-avatar-xl)', // 96px
           borderRadius: 'var(--mobile-radius-full)',
-          backgroundColor: 'var(--mobile-accent-agent)',
+          backgroundColor: 'var(--mobile-bg-tertiary)', // #2D3748 per Replit
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'var(--mobile-text-primary)',
-          fontSize: 'var(--mobile-font-size-4xl)',
-          fontWeight: 'var(--mobile-font-weight-bold)',
+          fontSize: 'var(--mobile-font-size-5xl)', // 32px for initials
+          fontWeight: 'var(--mobile-font-weight-medium)', // 500
           fontFamily: 'var(--mobile-font-sans)',
           flexShrink: 0,
+          marginBottom: 'var(--mobile-space-4)', // 16px margin below avatar
         }}
+        aria-label={`User avatar, ${initials}`}
       >
         {user.avatar ? (
           <img
@@ -63,71 +68,97 @@ export function ProfileCard({ user }: ProfileCardProps) {
         )}
       </div>
 
-      {/* User Info - Centered */}
+      {/* User Info - Centered with exact spacing */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 'var(--mobile-space-1)',
+          gap: 0, // Manual spacing per Replit spec
           width: '100%',
         }}
       >
-        {/* Name */}
+        {/* Username - 20px, medium weight */}
         <h2
           style={{
-            fontSize: 'var(--mobile-font-size-3xl)',
-            fontWeight: 'var(--mobile-font-weight-bold)',
+            fontSize: 'var(--mobile-font-size-3xl)', // 20px
+            fontWeight: 'var(--mobile-font-weight-medium)', // 500
             fontFamily: 'var(--mobile-font-sans)',
             color: 'var(--mobile-text-primary)',
             margin: 0,
+            marginBottom: 'var(--mobile-space-2)', // 8px below
             textAlign: 'center',
           }}
         >
-          {user.name}
+          {user.username}
         </h2>
 
-        {/* Username (handle) */}
+        {/* Handle - 14px, tertiary color */}
         <p
           style={{
-            fontSize: 'var(--mobile-font-size-md)',
+            fontSize: 'var(--mobile-font-size-md)', // 14px
             fontFamily: 'var(--mobile-font-sans)',
-            color: 'var(--mobile-text-secondary)',
+            color: 'var(--mobile-text-tertiary)', // #6E7681
             margin: 0,
+            marginBottom: 'var(--mobile-space-1)', // 4px below
             textAlign: 'center',
           }}
         >
           @{user.username}
         </p>
 
-        {/* Email */}
-        <p
+        {/* Email - 14px with icon */}
+        <div
           style={{
-            fontSize: 'var(--mobile-font-size-sm)',
-            fontFamily: 'var(--mobile-font-sans)',
-            color: 'var(--mobile-text-tertiary)',
-            margin: 0,
-            textAlign: 'center',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            maxWidth: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--mobile-space-2)', // 8px gap
+            marginBottom: 'var(--mobile-space-1)', // 4px below
           }}
         >
-          {user.email}
-        </p>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ color: 'var(--mobile-text-tertiary)' }}
+            aria-hidden="true"
+          >
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+          </svg>
+          <p
+            style={{
+              fontSize: 'var(--mobile-font-size-md)', // 14px
+              fontFamily: 'var(--mobile-font-sans)',
+              color: 'var(--mobile-text-tertiary)',
+              margin: 0,
+              textAlign: 'center',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: '100%',
+            }}
+          >
+            {user.email}
+          </p>
+        </div>
 
-        {/* Bio placeholder */}
+        {/* Bio placeholder - 14px, muted, 24px margin below */}
         {!user.bio && (
           <p
             style={{
-              fontSize: 'var(--mobile-font-size-sm)',
+              fontSize: 'var(--mobile-font-size-md)', // 14px per Replit
               fontFamily: 'var(--mobile-font-sans)',
-              color: 'var(--mobile-text-muted)',
+              color: 'var(--mobile-text-tertiary)', // #6E7681
               margin: 0,
-              marginTop: 'var(--mobile-space-2)',
+              marginTop: 0,
+              marginBottom: 'var(--mobile-space-6)', // 24px below per Replit
               textAlign: 'center',
-              fontStyle: 'italic',
             }}
           >
             You don't have a bio yet...

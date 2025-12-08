@@ -24,19 +24,19 @@ interface TemplateSelectorProps {
 export function TemplateSelector({ selected, onSelect }: TemplateSelectorProps) {
   return (
     <div
-      className="space-y-2"
+      className="space-y-4"
       style={{
-        gap: 'var(--mobile-space-2)',
+        gap: 'var(--mobile-space-4)',
       }}
     >
       <div
-        className="flex gap-2 overflow-x-auto pb-2 mobile-smooth-scroll"
+        className="flex gap-3 overflow-x-auto pb-2 mobile-smooth-scroll"
         style={{
           marginLeft: 'calc(var(--mobile-space-6) * -1)',
           marginRight: 'calc(var(--mobile-space-6) * -1)',
           paddingLeft: 'var(--mobile-space-6)',
           paddingRight: 'var(--mobile-space-6)',
-          gap: 'var(--mobile-space-2)',
+          gap: 'var(--mobile-space-3)',
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
         }}
@@ -45,22 +45,23 @@ export function TemplateSelector({ selected, onSelect }: TemplateSelectorProps) 
           <button
             key={template.id}
             onClick={() => onSelect(template.id)}
-            className="flex items-center gap-2 px-4 py-2 whitespace-nowrap transition-all mobile-active-scale"
+            className="flex items-center gap-2 whitespace-nowrap transition-all mobile-active-scale"
             style={{
-              borderRadius: 'var(--mobile-radius-lg)',
+              padding: '12px 20px',
+              borderRadius: 'var(--mobile-radius-md)',
               fontSize: 'var(--mobile-font-size-md)',
               fontWeight: 'var(--mobile-font-weight-medium)',
-              border: '1px solid',
+              border: '2px solid',
               borderColor: selected === template.id
                 ? 'var(--mobile-accent-primary)'
                 : 'var(--mobile-border-default)',
-              backgroundColor: selected === template.id
-                ? 'rgba(9, 105, 218, 0.1)'
-                : 'transparent',
+              backgroundColor: 'transparent',
               color: selected === template.id
-                ? 'var(--mobile-accent-primary)'
+                ? 'var(--mobile-text-primary)'
                 : 'var(--mobile-text-tertiary)',
               scrollSnapAlign: 'start',
+              transitionProperty: 'all',
+              transitionDuration: 'var(--mobile-transition-base)',
             }}
           >
             {template.icon}
@@ -70,8 +71,8 @@ export function TemplateSelector({ selected, onSelect }: TemplateSelectorProps) 
                 className="px-1.5 py-0.5 rounded"
                 style={{
                   fontSize: 'var(--mobile-font-size-xs)',
-                  backgroundColor: 'rgba(9, 105, 218, 0.1)',
-                  color: 'var(--mobile-accent-primary)',
+                  backgroundColor: 'var(--mobile-accent-primary)',
+                  color: '#FFFFFF',
                   fontWeight: 'var(--mobile-font-weight-semibold)',
                 }}
               >
@@ -84,10 +85,13 @@ export function TemplateSelector({ selected, onSelect }: TemplateSelectorProps) 
 
       {/* Selected template description */}
       <p
-        className="text-center"
         style={{
           fontSize: 'var(--mobile-font-size-sm)',
           color: 'var(--mobile-text-tertiary)',
+          paddingLeft: 'var(--mobile-space-6)',
+          paddingRight: 'var(--mobile-space-6)',
+          marginLeft: 'calc(var(--mobile-space-6) * -1)',
+          marginRight: 'calc(var(--mobile-space-6) * -1)',
         }}
       >
         {TEMPLATES.find(t => t.id === selected)?.description}

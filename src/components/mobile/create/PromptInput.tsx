@@ -32,7 +32,7 @@ export function PromptInput({
         className="overflow-hidden"
         style={{
           border: '1px solid var(--mobile-border-default)',
-          borderRadius: 'var(--mobile-radius-xl)',
+          borderRadius: 'var(--mobile-radius-lg)',
           backgroundColor: 'var(--mobile-bg-input)',
         }}
       >
@@ -45,7 +45,7 @@ export function PromptInput({
           className="border-0 resize-none focus-visible:ring-0 bg-transparent"
           disabled={isLoading}
           style={{
-            minHeight: '120px',
+            minHeight: '160px',
             fontSize: 'var(--mobile-font-size-md)',
             color: 'var(--mobile-text-primary)',
             fontFamily: 'var(--mobile-font-sans)',
@@ -62,51 +62,47 @@ export function PromptInput({
           }}
         >
           <div
-            className="flex"
+            className="flex items-center"
             style={{
-              gap: 'var(--mobile-space-2)',
+              gap: 'var(--mobile-space-4)',
             }}
           >
             <button
-              className="rounded-lg mobile-active-scale transition-all"
+              className="mobile-active-scale transition-all"
               aria-label="Attach file"
               style={{
                 padding: 'var(--mobile-space-2)',
                 color: 'var(--mobile-icon-default)',
-                minHeight: 'var(--mobile-touch-target-min)',
-                minWidth: 'var(--mobile-touch-target-min)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Paperclip size={20} />
+              <Paperclip size={24} />
             </button>
             <button
-              className="rounded-lg mobile-active-scale transition-all"
+              className="mobile-active-scale transition-all"
               aria-label="Voice input"
               style={{
                 padding: 'var(--mobile-space-2)',
                 color: 'var(--mobile-icon-default)',
-                minHeight: 'var(--mobile-touch-target-min)',
-                minWidth: 'var(--mobile-touch-target-min)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Mic size={20} />
+              <Mic size={24} />
             </button>
           </div>
 
           <button
             onClick={onSubmit}
             disabled={!value.trim() || isLoading}
-            className="flex items-center gap-2 rounded-lg font-medium transition-all mobile-active-scale"
+            className="flex items-center gap-2 font-medium transition-all mobile-active-scale"
             style={{
               padding: '10px 20px',
               fontSize: 'var(--mobile-font-size-md)',
-              fontWeight: 'var(--mobile-font-weight-semibold)',
+              fontWeight: 'var(--mobile-font-weight-medium)',
               borderRadius: 'var(--mobile-radius-md)',
               backgroundColor: value.trim() && !isLoading
                 ? 'var(--mobile-accent-primary)'
@@ -116,6 +112,8 @@ export function PromptInput({
                 : 'var(--mobile-text-disabled)',
               cursor: !value.trim() || isLoading ? 'not-allowed' : 'pointer',
               opacity: !value.trim() || isLoading ? 0.6 : 1,
+              transitionProperty: 'all',
+              transitionDuration: 'var(--mobile-transition-base)',
             }}
           >
             {isLoading ? (
@@ -125,8 +123,8 @@ export function PromptInput({
               </>
             ) : (
               <>
-                <Send size={16} />
                 <span>Create</span>
+                <Send size={16} />
               </>
             )}
           </button>

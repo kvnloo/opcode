@@ -21,34 +21,38 @@ export function AccountScreen() {
       }}
     >
       <ScrollArea className="flex-1 mobile-smooth-scroll">
-        <div style={{ padding: 'var(--mobile-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--mobile-space-6)' }}>
-          {/* Profile Card */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {/* Profile Card - No outer padding, handled internally */}
           <ProfileCard user={user} />
 
-          {/* Upgrade Banner */}
+          {/* Upgrade Banner - 16px horizontal margin, 24px bottom margin per Replit */}
           {!user.isPro && (
             <button
               className="mobile-tap-highlight mobile-active-scale"
               style={{
-                width: '100%',
-                height: 'var(--mobile-button-height-lg)',
-                padding: 'var(--mobile-button-padding-lg)',
-                backgroundColor: 'var(--mobile-accent-primary)',
+                width: 'calc(100% - 32px)', // Full width minus 32px padding (16px each side)
+                height: 'var(--mobile-button-height-lg)', // 48px
+                padding: 'var(--mobile-button-padding-lg)', // 12px 24px
+                marginLeft: 'var(--mobile-space-4)', // 16px
+                marginRight: 'var(--mobile-space-4)', // 16px
+                marginBottom: 'var(--mobile-space-6)', // 24px
+                backgroundColor: 'var(--mobile-accent-primary)', // #0969DA
                 color: 'var(--mobile-text-primary)',
-                borderRadius: 'var(--mobile-button-radius)',
-                fontWeight: 'var(--mobile-font-weight-semibold)',
-                fontSize: 'var(--mobile-font-size-md)',
+                borderRadius: 'var(--mobile-button-radius)', // 8px
+                fontWeight: 'var(--mobile-font-weight-medium)', // 500
+                fontSize: 'var(--mobile-font-size-xl)', // 16px
                 fontFamily: 'var(--mobile-font-sans)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 'var(--mobile-space-2)',
+                gap: 'var(--mobile-space-2)', // 8px
                 border: 'none',
                 cursor: 'pointer',
-                transition: 'background-color var(--mobile-transition-base) var(--mobile-transition-ease)',
+                transition: 'background-color var(--mobile-transition-fast) var(--mobile-transition-ease)', // 150ms
               }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-accent-primary-hover)'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-accent-primary)'}
+              aria-label="Join Claudia Core"
             >
               <svg
                 width="20"
@@ -59,6 +63,7 @@ export function AccountScreen() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                aria-hidden="true"
               >
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
@@ -66,7 +71,7 @@ export function AccountScreen() {
             </button>
           )}
 
-          {/* Settings List */}
+          {/* Settings List - No outer padding */}
           <SettingsList />
         </div>
       </ScrollArea>

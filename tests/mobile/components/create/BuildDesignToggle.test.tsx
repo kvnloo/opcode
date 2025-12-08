@@ -13,8 +13,9 @@ describe('BuildDesignToggle', () => {
 
     expect(buildButton).toBeInTheDocument();
     expect(designButton).toBeInTheDocument();
-    expect(buildButton).toHaveClass('bg-background', 'text-foreground', 'shadow-sm');
-    expect(designButton).not.toHaveClass('bg-background');
+    // Check inline styles for active/inactive states
+    expect(buildButton).toHaveStyle({ backgroundColor: 'var(--mobile-accent-primary)' });
+    expect(designButton).toHaveStyle({ backgroundColor: 'var(--mobile-bg-secondary)' });
   });
 
   it('renders with design mode selected', () => {
@@ -24,8 +25,8 @@ describe('BuildDesignToggle', () => {
     const buildButton = screen.getByRole('button', { name: /build/i });
     const designButton = screen.getByRole('button', { name: /design/i });
 
-    expect(buildButton).not.toHaveClass('bg-background');
-    expect(designButton).toHaveClass('bg-background', 'text-foreground', 'shadow-sm');
+    expect(buildButton).toHaveStyle({ backgroundColor: 'var(--mobile-bg-secondary)' });
+    expect(designButton).toHaveStyle({ backgroundColor: 'var(--mobile-accent-primary)' });
   });
 
   it('shows beta badge on design button', () => {
@@ -34,7 +35,8 @@ describe('BuildDesignToggle', () => {
 
     const betaBadge = screen.getByText('Beta');
     expect(betaBadge).toBeInTheDocument();
-    expect(betaBadge).toHaveClass('text-xs', 'bg-primary/10', 'text-primary');
+    // Check inline styles instead of classes
+    expect(betaBadge).toHaveStyle({ backgroundColor: 'var(--mobile-accent-primary)', color: '#FFFFFF' });
   });
 
   it('calls onChange when build button is clicked', () => {
@@ -68,12 +70,12 @@ describe('BuildDesignToggle', () => {
     expect(icons).toHaveLength(2);
   });
 
-  it('applies hover styles correctly', () => {
+  it('applies transition styles correctly', () => {
     const onChange = vi.fn();
     render(<BuildDesignToggle value="build" onChange={onChange} />);
 
     const designButton = screen.getByRole('button', { name: /design/i });
-    expect(designButton).toHaveClass('hover:text-foreground');
+    expect(designButton).toHaveClass('transition-all', 'mobile-active-scale');
   });
 
   it('maintains state consistency', () => {
@@ -87,8 +89,8 @@ describe('BuildDesignToggle', () => {
     rerender(<BuildDesignToggle value="design" onChange={onChange} />);
 
     const buildButton = screen.getByRole('button', { name: /build/i });
-    expect(designButton).toHaveClass('bg-background');
-    expect(buildButton).not.toHaveClass('bg-background');
+    expect(designButton).toHaveStyle({ backgroundColor: 'var(--mobile-accent-primary)' });
+    expect(buildButton).toHaveStyle({ backgroundColor: 'var(--mobile-bg-secondary)' });
   });
 
   it('handles rapid toggle clicks', () => {
@@ -112,7 +114,7 @@ describe('BuildDesignToggle', () => {
     const onChange = vi.fn();
     const { container } = render(<BuildDesignToggle value="build" onChange={onChange} />);
 
-    const wrapper = container.querySelector('.inline-flex.bg-muted.rounded-lg');
+    const wrapper = container.querySelector('.inline-flex');
     expect(wrapper).toBeInTheDocument();
     expect(wrapper?.children).toHaveLength(2);
   });

@@ -74,7 +74,7 @@ describe('PromptInput', () => {
 
     const submitButton = screen.getByRole('button', { name: /create/i });
     expect(submitButton).toBeDisabled();
-    expect(submitButton).toHaveClass('cursor-not-allowed');
+    expect(submitButton).toHaveStyle({ cursor: 'not-allowed' });
   });
 
   it('disables submit button when value is only whitespace', () => {
@@ -93,7 +93,7 @@ describe('PromptInput', () => {
 
     const submitButton = screen.getByRole('button', { name: /create/i });
     expect(submitButton).not.toBeDisabled();
-    expect(submitButton).toHaveClass('bg-primary');
+    expect(submitButton).toHaveStyle({ backgroundColor: 'var(--mobile-accent-primary)' });
   });
 
   it('calls onSubmit when submit button is clicked', () => {
@@ -178,12 +178,11 @@ describe('PromptInput', () => {
   it('renders action bar with correct styling', () => {
     const onChange = vi.fn();
     const onSubmit = vi.fn();
-    const { container } = render(
-      <PromptInput value="" onChange={onChange} onSubmit={onSubmit} />
-    );
+    render(<PromptInput value="" onChange={onChange} onSubmit={onSubmit} />);
 
-    const actionBar = container.querySelector('.border-t.border-border');
-    expect(actionBar).toBeInTheDocument();
+    // Check that the action buttons are present instead
+    expect(screen.getByLabelText('Attach file')).toBeInTheDocument();
+    expect(screen.getByLabelText('Voice input')).toBeInTheDocument();
   });
 
   it('renders textarea with minimum height', () => {
@@ -192,7 +191,8 @@ describe('PromptInput', () => {
     render(<PromptInput value="" onChange={onChange} onSubmit={onSubmit} />);
 
     const textarea = screen.getByPlaceholderText('Describe what you want to build...');
-    expect(textarea).toHaveClass('min-h-[120px]');
+    // Check inline style instead of class
+    expect(textarea).toHaveStyle({ minHeight: '160px' });
   });
 
   it('prevents default on Enter key and submits', () => {

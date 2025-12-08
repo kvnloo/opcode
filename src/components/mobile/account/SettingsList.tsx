@@ -108,26 +108,30 @@ export function SettingsList() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mobile-space-6)' }}>
       {sections.map((section, sectionIndex) => (
         <div key={sectionIndex}>
+          {/* Section header - 11px, bold, uppercase, 0.5px letter spacing */}
           {section.title && (
             <h3
               style={{
-                fontSize: 'var(--mobile-font-size-xs)',
-                fontWeight: 'var(--mobile-font-weight-semibold)',
+                fontSize: 'var(--mobile-font-size-xs)', // 11px
+                fontWeight: 'var(--mobile-font-weight-bold)', // 600
                 fontFamily: 'var(--mobile-font-sans)',
-                color: 'var(--mobile-text-tertiary)',
+                color: 'var(--mobile-text-tertiary)', // #6E7681
                 textTransform: 'uppercase',
-                letterSpacing: 'var(--mobile-letter-spacing-wider)',
-                marginBottom: 'var(--mobile-space-2)',
-                paddingLeft: 'var(--mobile-space-1)',
+                letterSpacing: 'var(--mobile-letter-spacing-widest)', // 0.5px
+                paddingLeft: 'var(--mobile-space-4)', // 16px per Replit
+                margin: 0,
+                marginTop: sectionIndex > 0 ? 'var(--mobile-space-6)' : 0, // 24px between sections
+                marginBottom: 'var(--mobile-space-2)', // 8px per Replit
               }}
             >
               {section.title}
             </h3>
           )}
+          {/* Items container - transparent background, no card style */}
           <div
             style={{
-              backgroundColor: 'var(--mobile-bg-card)',
-              borderRadius: 'var(--mobile-card-radius)',
+              backgroundColor: 'transparent', // Transparent per Replit
+              borderRadius: 0,
               overflow: 'hidden',
             }}
           >
@@ -138,43 +142,52 @@ export function SettingsList() {
                 className="mobile-tap-highlight mobile-no-select"
                 style={{
                   width: '100%',
-                  minHeight: '48px',
+                  height: '56px', // Exact 56px height per Replit
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 'var(--mobile-space-3)',
-                  padding: '0 var(--mobile-space-4)',
+                  gap: 'var(--mobile-space-3)', // 12px gap
+                  padding: '0 var(--mobile-space-4)', // 16px padding
                   backgroundColor: 'transparent',
                   borderWidth: '0',
                   borderBottomWidth: itemIndex < section.items.length - 1 ? '1px' : '0',
                   borderBottomStyle: 'solid',
-                  borderBottomColor: 'var(--mobile-border-subtle)',
+                  borderBottomColor: 'var(--mobile-border-subtle)', // #1E2835
                   color: item.destructive ? 'var(--mobile-accent-error)' : 'var(--mobile-text-primary)',
-                  fontSize: 'var(--mobile-font-size-md)',
+                  fontSize: 'var(--mobile-font-size-xl)', // 16px per Replit
                   fontFamily: 'var(--mobile-font-sans)',
                   fontWeight: 'var(--mobile-font-weight-regular)',
                   textAlign: 'left',
                   cursor: 'pointer',
-                  transition: 'background-color var(--mobile-transition-base) var(--mobile-transition-ease)',
+                  transition: 'background-color var(--mobile-transition-fast) var(--mobile-transition-ease)', // 150ms
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-bg-tertiary)'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-bg-secondary)'} // #1E2835
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                aria-label={item.label}
               >
-                {/* Icon */}
-                <span style={{ color: item.destructive ? 'var(--mobile-accent-error)' : 'var(--mobile-icon-default)', flexShrink: 0 }}>
+                {/* Icon - 20x20px */}
+                <span
+                  style={{
+                    color: item.destructive ? 'var(--mobile-accent-error)' : 'var(--mobile-icon-default)',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
                   {item.icon}
                 </span>
 
-                {/* Label */}
+                {/* Label - 16px */}
                 <span style={{ flex: 1 }}>
                   {item.label}
                 </span>
 
-                {/* Right content */}
+                {/* Right content - chevron or external link icon */}
                 {item.external && (
-                  <ExternalLink size={16} style={{ color: 'var(--mobile-icon-default)', flexShrink: 0 }} />
+                  <ExternalLink size={16} style={{ color: 'var(--mobile-icon-default)', flexShrink: 0 }} aria-hidden="true" />
                 )}
                 {!item.external && !item.hasToggle && !item.destructive && (
-                  <ChevronRight size={16} style={{ color: 'var(--mobile-icon-default)', flexShrink: 0 }} />
+                  <ChevronRight size={20} style={{ color: 'var(--mobile-icon-default)', flexShrink: 0 }} aria-hidden="true" />
                 )}
               </button>
             ))}
@@ -182,11 +195,11 @@ export function SettingsList() {
         </div>
       ))}
 
-      {/* Log Out - Separate at bottom */}
+      {/* Log Out - Separate at bottom, transparent background */}
       <div
         style={{
-          backgroundColor: 'var(--mobile-bg-card)',
-          borderRadius: 'var(--mobile-card-radius)',
+          backgroundColor: 'transparent',
+          borderRadius: 0,
           overflow: 'hidden',
         }}
       >
@@ -195,30 +208,40 @@ export function SettingsList() {
           className="mobile-tap-highlight mobile-no-select"
           style={{
             width: '100%',
-            minHeight: '48px',
+            height: '56px', // Exact 56px height per Replit
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--mobile-space-3)',
-            padding: '0 var(--mobile-space-4)',
+            gap: 'var(--mobile-space-3)', // 12px gap
+            padding: '0 var(--mobile-space-4)', // 16px padding
             backgroundColor: 'transparent',
             border: 'none',
-            color: 'var(--mobile-accent-error)',
-            fontSize: 'var(--mobile-font-size-md)',
+            color: 'var(--mobile-accent-error)', // #DA3633
+            fontSize: 'var(--mobile-font-size-xl)', // 16px per Replit
             fontFamily: 'var(--mobile-font-sans)',
             fontWeight: 'var(--mobile-font-weight-regular)',
             textAlign: 'left',
             cursor: 'pointer',
-            transition: 'background-color var(--mobile-transition-base) var(--mobile-transition-ease)',
+            transition: 'background-color var(--mobile-transition-fast) var(--mobile-transition-ease)', // 150ms
           }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-bg-tertiary)'}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-bg-secondary)'} // #1E2835
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          aria-label="Log out, warning"
+          role="button"
         >
-          {/* Icon */}
-          <span style={{ color: 'var(--mobile-accent-error)', flexShrink: 0 }}>
+          {/* Icon - 20x20px, red color */}
+          <span
+            style={{
+              color: 'var(--mobile-accent-error)',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <LogOut size={20} />
           </span>
 
-          {/* Label */}
+          {/* Label - Red color */}
           <span style={{ flex: 1 }}>
             Log Out
           </span>

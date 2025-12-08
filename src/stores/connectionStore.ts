@@ -81,7 +81,7 @@ const connectionStore: StateCreator<
 
   // Connect based on current mode
   connect: async () => {
-    const { mode, config, tailscaleHost, tailscaleUsername, tailscalePort, webApiToken } = get();
+    const { mode, tailscaleHost, tailscaleUsername, tailscalePort, webApiToken } = get();
 
     set({ status: 'connecting', error: null });
 

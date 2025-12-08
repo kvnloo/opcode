@@ -93,9 +93,9 @@ export function AppsScreen() {
         padding: 'var(--mobile-layout-padding-screen)'
       }}
     >
-      {/* Header */}
+      {/* Header - Pixel-perfect header matching Replit specs */}
       <div
-        className="flex items-center border-b"
+        className="flex items-center justify-center border-b"
         style={{
           height: 'var(--mobile-header-height)',
           borderBottomColor: 'var(--mobile-border-default)',
@@ -108,24 +108,22 @@ export function AppsScreen() {
       >
         <h1
           style={{
-            fontSize: 'var(--mobile-font-size-4xl)',
-            fontWeight: 'var(--mobile-font-weight-bold)',
+            fontSize: 'var(--mobile-font-size-3xl)',
+            fontWeight: 'var(--mobile-font-weight-medium)',
             color: 'var(--mobile-text-primary)',
-            lineHeight: 'var(--mobile-line-height-tight)'
+            lineHeight: 'var(--mobile-line-height-tight)',
+            margin: 0
           }}
         >
           Apps
         </h1>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter Bar - Pixel-perfect filter with proper spacing */}
       <div
-        className="border-b"
         style={{
-          paddingTop: 'var(--mobile-space-4)',
-          paddingBottom: 'var(--mobile-space-4)',
-          borderBottomColor: 'var(--mobile-border-default)',
-          borderBottomWidth: '1px',
+          paddingTop: 'var(--mobile-space-5)',
+          paddingBottom: 'var(--mobile-space-5)',
           marginLeft: 'calc(-1 * var(--mobile-layout-padding-screen))',
           marginRight: 'calc(-1 * var(--mobile-layout-padding-screen))',
           paddingLeft: 'var(--mobile-layout-padding-screen)',
@@ -133,11 +131,16 @@ export function AppsScreen() {
         }}
       >
         <button
-          className="flex items-center gap-2 mobile-tap-highlight transition-colors"
+          className="flex items-center gap-2 mobile-tap-highlight transition-colors mobile-touch-target"
           style={{
             color: 'var(--mobile-text-secondary)',
             fontSize: 'var(--mobile-font-size-md)',
             fontWeight: 'var(--mobile-font-weight-medium)',
+            padding: 0,
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            minHeight: 'var(--mobile-touch-target-min)'
           }}
           onMouseEnter={(e) => e.currentTarget.style.color = 'var(--mobile-text-primary)'}
           onMouseLeave={(e) => e.currentTarget.style.color = 'var(--mobile-text-secondary)'}
@@ -160,14 +163,18 @@ export function AppsScreen() {
             paddingTop: 'var(--mobile-space-4)',
           }}
         >
-          {/* Loading State */}
+          {/* Loading State - Pixel-perfect with proper icon size and spacing */}
           {isLoadingProjects && (
             <div
               className="flex flex-col items-center justify-center"
-              style={{ paddingTop: 'var(--mobile-space-8)', paddingBottom: 'var(--mobile-space-8)' }}
+              style={{
+                paddingTop: 'var(--mobile-space-8)',
+                paddingBottom: 'var(--mobile-space-8)',
+                gap: 'var(--mobile-gap-base)'
+              }}
             >
               <Loader2
-                className="animate-spin mb-2"
+                className="animate-spin"
                 style={{
                   width: 'var(--mobile-icon-lg)',
                   height: 'var(--mobile-icon-lg)',
@@ -178,6 +185,7 @@ export function AppsScreen() {
                 style={{
                   color: 'var(--mobile-text-tertiary)',
                   fontSize: 'var(--mobile-font-size-md)',
+                  margin: 0
                 }}
               >
                 Loading projects...
@@ -185,34 +193,43 @@ export function AppsScreen() {
             </div>
           )}
 
-          {/* Error State */}
+          {/* Error State - Pixel-perfect error display with proper styling */}
           {error && !isLoadingProjects && (
             <div
               className="flex flex-col items-center justify-center"
-              style={{ paddingTop: 'var(--mobile-space-8)', paddingBottom: 'var(--mobile-space-8)' }}
+              style={{
+                paddingTop: 'var(--mobile-space-8)',
+                paddingBottom: 'var(--mobile-space-8)',
+                gap: 'var(--mobile-space-3)'
+              }}
             >
               <div
-                className="mb-4"
-                style={{ color: 'var(--mobile-accent-error)' }}
+                style={{
+                  fontSize: 'var(--mobile-font-size-5xl)',
+                  marginBottom: 'var(--mobile-space-2)'
+                }}
               >
-                <span style={{ fontSize: 'var(--mobile-font-size-5xl)' }}>⚠️</span>
+                ⚠️
               </div>
               <h3
-                className="mb-2"
                 style={{
                   fontSize: 'var(--mobile-font-size-lg)',
                   fontWeight: 'var(--mobile-font-weight-semibold)',
                   color: 'var(--mobile-text-primary)',
+                  margin: 0
                 }}
               >
                 Failed to load projects
               </h3>
               <p
-                className="mb-4 text-center"
+                className="text-center"
                 style={{
                   fontSize: 'var(--mobile-font-size-sm)',
                   color: 'var(--mobile-text-tertiary)',
                   maxWidth: '280px',
+                  margin: 0,
+                  marginBottom: 'var(--mobile-space-4)',
+                  lineHeight: 'var(--mobile-line-height-relaxed)'
                 }}
               >
                 {error}
@@ -228,6 +245,9 @@ export function AppsScreen() {
                   fontSize: 'var(--mobile-font-size-md)',
                   fontWeight: 'var(--mobile-font-weight-medium)',
                   transition: 'background-color var(--mobile-transition-base) var(--mobile-transition-ease)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  minHeight: 'var(--mobile-button-height-base)'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-accent-primary-hover)'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-accent-primary)'}
@@ -237,30 +257,31 @@ export function AppsScreen() {
             </div>
           )}
 
-          {/* Empty State */}
+          {/* Empty State - Pixel-perfect empty state with proper spacing */}
           {!isLoadingProjects && !error && projects.length === 0 && (
             <div
               className="flex flex-col items-center justify-center"
               style={{
                 paddingTop: 'var(--mobile-space-16)',
-                paddingBottom: 'var(--mobile-space-16)'
+                paddingBottom: 'var(--mobile-space-16)',
+                gap: 'var(--mobile-space-3)'
               }}
             >
               <div
-                className="mb-4"
                 style={{
                   fontSize: 'var(--mobile-font-size-6xl)',
                   opacity: 'var(--mobile-animation-opacity-muted)',
+                  marginBottom: 'var(--mobile-space-2)'
                 }}
               >
                 📦
               </div>
               <h3
-                className="mb-2"
                 style={{
                   fontSize: 'var(--mobile-font-size-lg)',
                   fontWeight: 'var(--mobile-font-weight-semibold)',
                   color: 'var(--mobile-text-primary)',
+                  margin: 0
                 }}
               >
                 No projects yet
@@ -272,6 +293,7 @@ export function AppsScreen() {
                   color: 'var(--mobile-text-tertiary)',
                   maxWidth: '280px',
                   lineHeight: 'var(--mobile-line-height-relaxed)',
+                  margin: 0
                 }}
               >
                 Create your first project to get started

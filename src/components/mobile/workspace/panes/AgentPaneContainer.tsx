@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { api } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
-import { AgentPane, type Task, type Checkpoint } from './AgentPane';
+import { AgentPane, type Task } from './AgentPane';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,7 +23,7 @@ interface ClaudeSessionEvent {
   error?: string;
 }
 
-export function AgentPaneContainer({ projectId }: AgentPaneContainerProps) {
+export function AgentPaneContainer({ projectId: _projectId }: AgentPaneContainerProps) {
   const [prompt, setPrompt] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [output, setOutput] = useState('');
@@ -38,7 +38,6 @@ export function AgentPaneContainer({ projectId }: AgentPaneContainerProps) {
     startAgent,
     stopAgent,
     updateTask,
-    addTask,
   } = useWorkspaceStore();
 
   // Auto-scroll to bottom when output changes

@@ -71,7 +71,7 @@ describe('CreateScreen', () => {
       render(<CreateScreen />);
 
       expect(screen.getByText('Start creating for free')).toBeInTheDocument();
-      expect(screen.getByText('Join Core to unlock more usage')).toBeInTheDocument();
+      expect(screen.getByText('Join Opcode Core')).toBeInTheDocument();
     });
 
     it('renders prompt input with correct placeholder', () => {
@@ -316,8 +316,10 @@ describe('CreateScreen', () => {
   describe('Accessibility', () => {
     it('has proper heading hierarchy', () => {
       render(<CreateScreen />);
-      const heading = screen.getByText('what do you want to make?');
-      expect(heading.tagName).toBe('H1');
+      const mainHeading = screen.getByText('Create');
+      expect(mainHeading.tagName).toBe('H1');
+      const subHeading = screen.getByText('what do you want to make?');
+      expect(subHeading.tagName).toBe('H2');
     });
 
     it('has accessible prompt input', () => {
@@ -328,7 +330,7 @@ describe('CreateScreen', () => {
 
     it('has accessible upgrade link', () => {
       render(<CreateScreen />);
-      const link = screen.getByText('Join Core to unlock more usage');
+      const link = screen.getByText('Join Opcode Core');
       expect(link.tagName).toBe('A');
     });
   });

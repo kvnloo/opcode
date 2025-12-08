@@ -332,24 +332,60 @@ class MockResizeObserver implements ResizeObserver {
 
 global.ResizeObserver = MockResizeObserver as any;
 
-// Mock sessionStore with default test data
+// Mock sessionStore with default test data using vi.hoisted() for proper module hoisting
 // Note: The AppsScreen transforms path to name using path.split('/').pop()
 // So path '/projects/Test Project' will display as 'Test Project'
-vi.mock('@/stores/sessionStore', () => ({
-  useSessionStore: vi.fn(() => ({
-    projects: [
+const mockSessionStoreState = vi.hoisted(() => {
+  const projects = [
+    {
+      id: 'test-project-1',
+      path: '/projects/Test Project',
+      name: 'Test Project',
+      sessions: ['session-1', 'session-2'],
+      created_at: Date.now() - 86400000,
+      most_recent_session: Date.now()
+    },
+    {
+      id: 'test-project-2',
+      path: '/projects/Another Project',
+      name: 'Another Project',
+      sessions: ['session-3'],
+      created_at: Date.now() - 172800000,
+      most_recent_session: Date.now() - 3600000
+    }
+  ];
+
+  const sessions = {
+    'test-project-1': [
       {
-        id: 'test-project-1',
-        path: '/projects/Test Project',
-        name: 'Test Project'
+        id: 'session-1',
+        project_id: 'test-project-1',
+        started_at: Date.now() - 7200000,
+        last_active: Date.now() - 3600000,
+        status: 'idle'
       },
       {
-        id: 'test-project-2',
-        path: '/projects/Another Project',
-        name: 'Another Project'
+        id: 'session-2',
+        project_id: 'test-project-1',
+        started_at: Date.now() - 86400000,
+        last_active: Date.now() - 43200000,
+        status: 'idle'
       }
     ],
-    sessions: {},
+    'test-project-2': [
+      {
+        id: 'session-3',
+        project_id: 'test-project-2',
+        started_at: Date.now() - 172800000,
+        last_active: Date.now() - 86400000,
+        status: 'idle'
+      }
+    ]
+  };
+
+  return {
+    projects,
+    sessions,
     currentSessionId: null,
     currentSession: null,
     sessionOutputs: {},
@@ -357,15 +393,27 @@ vi.mock('@/stores/sessionStore', () => ({
     isLoadingSessions: false,
     isLoadingOutputs: false,
     error: null,
-    fetchProjects: vi.fn(),
-    fetchProjectSessions: vi.fn(),
+    fetchProjects: vi.fn().mockResolvedValue(undefined),
+    fetchProjectSessions: vi.fn().mockResolvedValue(undefined),
     setCurrentSession: vi.fn(),
-    fetchSessionOutput: vi.fn(),
-    deleteSession: vi.fn(),
+    fetchSessionOutput: vi.fn().mockResolvedValue(undefined),
+    deleteSession: vi.fn().mockResolvedValue(undefined),
     clearError: vi.fn(),
     handleSessionUpdate: vi.fn(),
     handleOutputUpdate: vi.fn()
-  }))
+  };
+});
+
+vi.mock('@/stores/sessionStore', () => ({
+  useSessionStore: Object.assign(
+    (selector?: any) => {
+      const state = mockSessionStoreState();
+      return selector ? selector(state) : state;
+    },
+    {
+      getState: () => mockSessionStoreState()
+    }
+  )
 }));
 
 // Mock workspaceStore with default test data
