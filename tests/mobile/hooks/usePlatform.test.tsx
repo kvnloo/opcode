@@ -250,7 +250,7 @@ describe('usePlatform', () => {
 
   describe('Cleanup', () => {
     test('should remove resize listener on unmount', async () => {
-      const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
+      const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
 
       const { unmount } = renderHook(() => usePlatform());
 

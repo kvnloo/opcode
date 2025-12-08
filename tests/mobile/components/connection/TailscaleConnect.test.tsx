@@ -49,8 +49,7 @@ describe('TailscaleConnect', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
-      await user.click(hostInput);
-      await user.keyboard('100.64.0.5');
+      await user.type(hostInput, '100.64.0.5');
 
       const button = screen.getByRole('button', { name: /connect via tailscale/i });
       expect(button).toBeDisabled();
@@ -93,8 +92,7 @@ describe('TailscaleConnect', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
-      await user.click(hostInput);
-      await user.keyboard('192.168.1.100');
+      await user.type(hostInput, '192.168.1.100');
 
       expect(hostInput).toHaveValue('192.168.1.100');
     });
@@ -104,8 +102,7 @@ describe('TailscaleConnect', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const usernameInput = screen.getByPlaceholderText('Username');
-      await user.click(usernameInput);
-      await user.keyboard('admin');
+      await user.type(usernameInput, 'admin');
 
       expect(usernameInput).toHaveValue('admin');
     });
@@ -116,14 +113,13 @@ describe('TailscaleConnect', () => {
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
 
-      await user.click(hostInput);
-      await user.keyboard('100.64.0.5');
+      await user.type(hostInput, '100.64.0.5');
       expect(hostInput).toHaveValue('100.64.0.5');
 
       await user.clear(hostInput);
       expect(hostInput).toHaveValue('');
 
-      await user.keyboard('192.168.1.1');
+      await user.type(hostInput, '192.168.1.1');
       expect(hostInput).toHaveValue('192.168.1.1');
     });
   });
@@ -273,8 +269,7 @@ describe('TailscaleConnect', () => {
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
 
-      await user.click(hostInput);
-      await user.keyboard('abc');
+      await user.type(hostInput, 'abc');
 
       expect(hostInput).toHaveValue('abc');
     });
@@ -284,8 +279,7 @@ describe('TailscaleConnect', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const usernameInput = screen.getByPlaceholderText('Username');
-      await user.click(usernameInput);
-      await user.keyboard('user@example.com');
+      await user.type(usernameInput, 'user@example.com');
 
       expect(usernameInput).toHaveValue('user@example.com');
     });
@@ -297,10 +291,8 @@ describe('TailscaleConnect', () => {
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
       const usernameInput = screen.getByPlaceholderText('Username');
 
-      await user.click(hostInput);
-      await user.keyboard('100.64.0.5');
-      await user.click(usernameInput);
-      await user.keyboard('testuser');
+      await user.type(hostInput, '100.64.0.5');
+      await user.type(usernameInput, 'testuser');
 
       // Component maintains internal state, so values should be present
       expect(hostInput).toHaveValue('100.64.0.5');

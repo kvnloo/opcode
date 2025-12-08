@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { render } from '../../utils/renderWithProviders';
-import { swipeDown, swipeUp } from '../../utils/gestures';
+import { swipeDown } from '../../utils/gestures';
 import { VirtualList, VirtualListItem, useItemHeight } from '@/components/mobile/common/VirtualList';
 import { act, renderHook } from '@testing-library/react';
 
@@ -262,6 +262,15 @@ describe('VirtualList', () => {
 
   describe('Performance', () => {
     it('should use ResizeObserver to measure container', () => {
+      // Spy on ResizeObserver constructor
+      const observeSpy = vi.fn();
+      const disconnectSpy = vi.fn();
+      global.ResizeObserver = vi.fn().mockImplementation(() => ({
+        observe: observeSpy,
+        unobserve: vi.fn(),
+        disconnect: disconnectSpy,
+      }));
+
       render(
         <VirtualList
           items={mockItems.slice(0, 10)}
@@ -271,6 +280,7 @@ describe('VirtualList', () => {
       );
 
       expect(global.ResizeObserver).toHaveBeenCalled();
+      expect(observeSpy).toHaveBeenCalled();
     });
 
     it('should calculate item positions efficiently', () => {
@@ -338,24 +348,26 @@ describe('useItemHeight', () => {
 
   it('should store and retrieve measured heights', () => {
     const { result } = renderHook(() => useItemHeight(testItems, 100));
-    const [getHeight, setHeight] = result.current;
 
     act(() => {
+      const [, setHeight] = result.current;
       setHeight(0, 150);
     });
 
+    const [getHeight] = result.current;
     expect(getHeight(testItems[0], 0)).toBe(150);
   });
 
   it('should update heights independently', () => {
     const { result } = renderHook(() => useItemHeight(testItems, 100));
-    const [getHeight, setHeight] = result.current;
 
     act(() => {
+      const [, setHeight] = result.current;
       setHeight(0, 150);
       setHeight(1, 200);
     });
 
+    const [getHeight] = result.current;
     expect(getHeight(testItems[0], 0)).toBe(150);
     expect(getHeight(testItems[1], 1)).toBe(200);
     expect(getHeight(testItems[2], 2)).toBe(100); // default

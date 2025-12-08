@@ -61,7 +61,7 @@ describe('ConnectionManager', () => {
       await user.click(webCard!);
 
       expect(webCard).toHaveClass('ring-2', 'ring-primary');
-      expect(screen.getByText('Sign in with your GitHub account to use Claude Code Web API.')).toBeInTheDocument();
+      expect(screen.getByText(/Sign in with your GitHub account to use Claude Code Web API/)).toBeInTheDocument();
     });
 
     it('only shows connection form for selected mode', async () => {

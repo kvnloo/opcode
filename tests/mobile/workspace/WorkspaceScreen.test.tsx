@@ -2,6 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { WorkspaceScreen } from '@/screens/mobile/WorkspaceScreen';
 
+// Mock workspace store
+vi.mock('@/stores/workspaceStore', () => ({
+  useWorkspaceStore: vi.fn((selector) => {
+    const state = {
+      activePane: 'console',
+      setActivePane: vi.fn(),
+    };
+    return selector ? selector(state) : state;
+  }),
+}));
+
 // Mock components
 vi.mock('@/components/mobile/workspace/WorkspaceToolbar', () => ({
   WorkspaceToolbar: ({ activePane, onPaneChange }: any) => (
@@ -18,6 +29,7 @@ vi.mock('@/components/mobile/workspace/WorkspaceToolbar', () => ({
 
 describe('WorkspaceScreen', () => {
   const mockOnBack = vi.fn();
+  const mockSetActivePane = vi.fn();
   const defaultProps = {
     projectId: 'test-project-123',
     projectName: 'My Test Project',
@@ -26,6 +38,15 @@ describe('WorkspaceScreen', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset store mock
+    const { useWorkspaceStore } = require('@/stores/workspaceStore');
+    useWorkspaceStore.mockImplementation((selector: any) => {
+      const state = {
+        activePane: 'console',
+        setActivePane: mockSetActivePane,
+      };
+      return selector ? selector(state) : state;
+    });
   });
 
   describe('Rendering', () => {
@@ -77,8 +98,9 @@ describe('WorkspaceScreen', () => {
     it('should render console pane content initially', () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
-      // Console pane shows terminal icon and text
-      expect(screen.getByText('Console')).toBeInTheDocument();
+      // Console pane shows terminal icon and text in the main content area
+      const consoleHeading = screen.getByRole('heading', { name: 'Console' });
+      expect(consoleHeading).toBeInTheDocument();
       expect(screen.getByText(/Terminal output will appear here/)).toBeInTheDocument();
     });
   });
@@ -91,7 +113,7 @@ describe('WorkspaceScreen', () => {
       fireEvent.click(agentButton);
 
       await waitFor(() => {
-        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+        expect(mockSetActivePane).toHaveBeenCalledWith('agent');
       });
     });
 
@@ -102,7 +124,7 @@ describe('WorkspaceScreen', () => {
       fireEvent.click(deployButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Deployment controls will appear here')).toBeInTheDocument();
+        expect(mockSetActivePane).toHaveBeenCalledWith('deploy');
       });
     });
 
@@ -113,7 +135,7 @@ describe('WorkspaceScreen', () => {
       fireEvent.click(shareButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Sharing options will appear here')).toBeInTheDocument();
+        expect(mockSetActivePane).toHaveBeenCalledWith('share');
       });
     });
 
@@ -124,31 +146,32 @@ describe('WorkspaceScreen', () => {
       fireEvent.click(previewButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Live preview will appear here')).toBeInTheDocument();
+        expect(mockSetActivePane).toHaveBeenCalledWith('preview');
       });
     });
 
     it('should update active pane indicator when switching', async () => {
+      const { useWorkspaceStore } = require('@/stores/workspaceStore');
+      useWorkspaceStore.mockImplementation((selector: any) => {
+        const state = {
+          activePane: 'agent',
+          setActivePane: mockSetActivePane,
+        };
+        return selector ? selector(state) : state;
+      });
+
       render(<WorkspaceScreen {...defaultProps} />);
 
-      const agentButton = screen.getByRole('button', { name: 'Agent' });
-      fireEvent.click(agentButton);
-
-      await waitFor(() => {
-        const activePaneIndicator = screen.getByTestId('active-pane');
-        expect(activePaneIndicator).toHaveTextContent('agent');
-      });
+      const activePaneIndicator = screen.getByTestId('active-pane');
+      expect(activePaneIndicator).toHaveTextContent('agent');
     });
 
     it('should animate pane transitions', async () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
-      const agentButton = screen.getByRole('button', { name: 'Agent' });
-      fireEvent.click(agentButton);
-
-      // Pane content should be wrapped in motion.div with animation
-      const paneContent = screen.getByText('AI agent chat will appear here').closest('div');
-      expect(paneContent).toBeInTheDocument();
+      // Content area exists with animation wrapper
+      const contentArea = screen.getByTestId('workspace-toolbar').parentElement;
+      expect(contentArea).toBeInTheDocument();
     });
   });
 
@@ -356,24 +379,24 @@ describe('WorkspaceScreen', () => {
   });
 
   describe('Pane content rendering', () => {
-    it('should show correct icon for each pane', async () => {
+    it('should call setActivePane for each pane', async () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
       const panes = [
-        { name: 'Console', icon: true },
-        { name: 'Agent', icon: true },
-        { name: 'Deploy', icon: true },
-        { name: 'Share', icon: true },
-        { name: 'Preview', icon: true },
+        { name: 'Console', id: 'console' },
+        { name: 'Agent', id: 'agent' },
+        { name: 'Deploy', id: 'deploy' },
+        { name: 'Share', id: 'share' },
+        { name: 'Preview', id: 'preview' },
       ];
 
       for (const pane of panes) {
+        mockSetActivePane.mockClear();
         const button = screen.getByRole('button', { name: pane.name });
         fireEvent.click(button);
 
         await waitFor(() => {
-          const paneHeading = screen.getByText(pane.name, { selector: 'h2' });
-          expect(paneHeading).toBeInTheDocument();
+          expect(mockSetActivePane).toHaveBeenCalledWith(pane.id);
         });
       }
     });

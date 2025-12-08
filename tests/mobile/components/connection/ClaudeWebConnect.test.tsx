@@ -15,10 +15,10 @@ describe('ClaudeWebConnect', () => {
       render(<ClaudeWebConnect onConnect={mockOnConnect} />);
 
       expect(
-        screen.getByText('Sign in with your GitHub account to use Claude Code Web API.')
+        screen.getByText(/Sign in with your GitHub account to use Claude Code Web API/)
       ).toBeInTheDocument();
       expect(
-        screen.getByText('Requires Claude Pro or Max subscription.')
+        screen.getByText(/Requires Claude Pro or Max subscription/)
       ).toBeInTheDocument();
     });
 

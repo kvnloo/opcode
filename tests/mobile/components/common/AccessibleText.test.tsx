@@ -74,7 +74,9 @@ describe('AccessibleText', () => {
       render(<AccessibleText scalable={false}>Unscaled text</AccessibleText>);
       const text = screen.getByText('Unscaled text');
 
-      expect(text).not.toHaveAttribute('style');
+      // When scalable is false, fontSize should not be applied via inline style
+      const style = text.getAttribute('style');
+      expect(style).not.toContain('font-size');
     });
 
     it('should not apply scale when font scale is 1', () => {
@@ -84,7 +86,9 @@ describe('AccessibleText', () => {
       render(<AccessibleText>Normal text</AccessibleText>);
       const text = screen.getByText('Normal text');
 
-      expect(text).not.toHaveAttribute('style');
+      // When font scale is 1, no inline style should be applied
+      const style = text.getAttribute('style');
+      expect(style).toBeFalsy();
     });
   });
 
@@ -96,7 +100,9 @@ describe('AccessibleText', () => {
       render(<AccessibleText>High contrast text</AccessibleText>);
       const text = screen.getByText('High contrast text');
 
-      expect(text.className).toContain('contrast-more');
+      // Check for contrast-more classes in className
+      expect(text.className).toContain('contrast-more:text-black');
+      expect(text.className).toContain('dark:contrast-more:text-white');
     });
 
     it('should not apply high contrast when highContrast is false', () => {
@@ -106,7 +112,8 @@ describe('AccessibleText', () => {
       render(<AccessibleText highContrast={false}>Text</AccessibleText>);
       const text = screen.getByText('Text');
 
-      expect(text.className).not.toContain('contrast-more');
+      expect(text.className).not.toContain('contrast-more:text-black');
+      expect(text.className).not.toContain('dark:contrast-more:text-white');
     });
   });
 
@@ -182,8 +189,8 @@ describe('AccessibleText', () => {
   describe('ARIA Attributes', () => {
     it('should apply aria-label when provided', () => {
       render(<AccessibleText ariaLabel="Custom label">Text</AccessibleText>);
-      const text = screen.getByLabelText('Custom label');
-      expect(text).toBeInTheDocument();
+      const text = screen.getByText('Text');
+      expect(text).toHaveAttribute('aria-label', 'Custom label');
     });
 
     it('should apply aria-level for headings when provided', () => {
@@ -238,6 +245,8 @@ describe('VisuallyHidden', () => {
   it('should render with sr-only class', () => {
     render(<VisuallyHidden>Hidden text</VisuallyHidden>);
     const container = screen.getByText('Hidden text').parentElement;
+    // The VisuallyHidden wraps in a div, not a span
+    expect(container).toBeInTheDocument();
     expect(container?.className).toContain('sr-only');
   });
 

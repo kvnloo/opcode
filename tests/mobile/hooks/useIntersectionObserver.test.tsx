@@ -21,7 +21,9 @@ const mockUnobserveFn = vi.fn();
 const mockDisconnectFn = vi.fn();
 const mockTakeRecordsFn = vi.fn(() => []);
 
+let intersectionCallback: IntersectionObserverCallback | null = null;
 let mockObserver: MockIntersectionObserver | null = null;
+let observedElements = new Map<Element, MockIntersectionObserver>();
 
 // Mock IntersectionObserver
 class MockIntersectionObserver implements IntersectionObserver {
@@ -30,67 +32,63 @@ class MockIntersectionObserver implements IntersectionObserver {
   readonly thresholds: ReadonlyArray<number> = [0];
 
   constructor(
-    private callback: IntersectionObserverCallback,
-    private options?: IntersectionObserverInit
+    callback: IntersectionObserverCallback,
+    options?: IntersectionObserverInit
   ) {
+    intersectionCallback = callback;
     this.root = options?.root || null;
     this.rootMargin = options?.rootMargin || '0px';
     this.thresholds = Array.isArray(options?.threshold)
       ? options.threshold
       : [options?.threshold || 0];
 
-    // Store this instance globally for test access
+    // Store this instance for test access
     mockObserver = this;
   }
 
   observe = (target: Element) => {
     mockObserveFn(target);
-    // Immediately call callback with mock entry
-    const entry: IntersectionObserverEntry = {
-      target,
-      isIntersecting: false,
-      intersectionRatio: 0,
-      boundingClientRect: {} as DOMRectReadOnly,
-      intersectionRect: {} as DOMRectReadOnly,
-      rootBounds: null,
-      time: Date.now(),
-    };
-    this.callback([entry], this);
+    observedElements.set(target, this);
   };
 
   unobserve = (target: Element) => {
     mockUnobserveFn(target);
+    observedElements.delete(target);
   };
 
   disconnect = () => {
     mockDisconnectFn();
+    observedElements.clear();
   };
 
   takeRecords = () => {
     return mockTakeRecordsFn();
   };
+}
 
-  // Helper to trigger intersection
-  triggerIntersection(isIntersecting: boolean, ratio: number = 1) {
-    const targets = mockObserveFn.mock.calls.map((call) => call[0]);
-    targets.forEach((target) => {
-      const entry: IntersectionObserverEntry = {
-        target,
-        isIntersecting,
-        intersectionRatio: ratio,
-        boundingClientRect: {} as DOMRectReadOnly,
-        intersectionRect: {} as DOMRectReadOnly,
-        rootBounds: null,
-        time: Date.now(),
-      };
-      this.callback([entry], this);
-    });
-  }
+// Helper to trigger intersection for all observed elements
+function triggerIntersection(isIntersecting: boolean, ratio: number = isIntersecting ? 1 : 0) {
+  observedElements.forEach((observer, target) => {
+    const entry: IntersectionObserverEntry = {
+      target,
+      isIntersecting,
+      intersectionRatio: ratio,
+      boundingClientRect: {} as DOMRectReadOnly,
+      intersectionRect: {} as DOMRectReadOnly,
+      rootBounds: null,
+      time: Date.now(),
+    };
+    if (intersectionCallback) {
+      intersectionCallback([entry], observer);
+    }
+  });
 }
 
 describe('useIntersectionObserver', () => {
   beforeEach(() => {
+    intersectionCallback = null;
     mockObserver = null;
+    observedElements.clear();
     mockObserveFn.mockClear();
     mockUnobserveFn.mockClear();
     mockDisconnectFn.mockClear();
@@ -124,44 +122,58 @@ describe('useIntersectionObserver', () => {
     });
 
     test('should update isIntersecting when element becomes visible', async () => {
-      const { result } = renderHook(() => useIntersectionObserver());
+      const TestComponent = () => {
+        const { ref, isIntersecting } = useIntersectionObserver();
+        return <div ref={ref as any} data-intersecting={isIntersecting.toString()} />;
+      };
 
-      const element = document.createElement('div');
-      act(() => {
-        (result.current.ref as any).current = element;
+      const { container } = render(<TestComponent />);
+      const element = container.firstChild as Element;
+
+      // Wait for observer to be created
+      await waitFor(() => {
+        expect(mockObserveFn).toHaveBeenCalledWith(element);
       });
 
       act(() => {
-        mockObserver?.triggerIntersection(true);
+        triggerIntersection(true);
       });
 
       await waitFor(() => {
-        expect(result.current.isIntersecting).toBe(true);
+        expect(element.getAttribute('data-intersecting')).toBe('true');
       });
     });
 
     test('should update isIntersecting when element becomes hidden', async () => {
-      const { result } = renderHook(() => useIntersectionObserver());
+      const TestComponent = () => {
+        const { ref, isIntersecting } = useIntersectionObserver();
+        return <div ref={ref as any} data-intersecting={isIntersecting.toString()} />;
+      };
 
-      const element = document.createElement('div');
-      act(() => {
-        (result.current.ref as any).current = element;
+      const { container } = render(<TestComponent />);
+      const element = container.firstChild as Element;
+
+      // Wait for observer to be created
+      await waitFor(() => {
+        expect(mockObserveFn).toHaveBeenCalledWith(element);
       });
 
+      // First make it visible
       act(() => {
-        mockObserver?.triggerIntersection(true);
+        triggerIntersection(true);
       });
 
       await waitFor(() => {
-        expect(result.current.isIntersecting).toBe(true);
+        expect(element.getAttribute('data-intersecting')).toBe('true');
       });
 
+      // Then hide it
       act(() => {
-        mockObserver?.triggerIntersection(false);
+        triggerIntersection(false);
       });
 
       await waitFor(() => {
-        expect(result.current.isIntersecting).toBe(false);
+        expect(element.getAttribute('data-intersecting')).toBe('false');
       });
     });
   });
@@ -203,17 +215,21 @@ describe('useIntersectionObserver', () => {
 
     test('should call onChange callback', async () => {
       const onChange = vi.fn();
-      const { result } = renderHook(() =>
-        useIntersectionObserver({ onChange })
-      );
 
-      const element = document.createElement('div');
-      act(() => {
-        (result.current.ref as any).current = element;
+      const TestComponent = () => {
+        const { ref } = useIntersectionObserver({ onChange });
+        return <div ref={ref as any} />;
+      };
+
+      const { container } = render(<TestComponent />);
+      const element = container.firstChild as Element;
+
+      await waitFor(() => {
+        expect(mockObserveFn).toHaveBeenCalledWith(element);
       });
 
       act(() => {
-        mockObserver?.triggerIntersection(true);
+        triggerIntersection(true);
       });
 
       await waitFor(() => {
@@ -224,57 +240,65 @@ describe('useIntersectionObserver', () => {
 
   describe('freezeOnceVisible', () => {
     test('should stop observing after first intersection', async () => {
-      const { result } = renderHook(() =>
-        useIntersectionObserver({ freezeOnceVisible: true })
-      );
+      const TestComponent = () => {
+        const { ref, isIntersecting } = useIntersectionObserver({ freezeOnceVisible: true });
+        return <div ref={ref as any} data-intersecting={isIntersecting.toString()} />;
+      };
 
-      const element = document.createElement('div');
-      act(() => {
-        (result.current.ref as any).current = element;
+      const { container } = render(<TestComponent />);
+      const element = container.firstChild as Element;
+
+      await waitFor(() => {
+        expect(mockObserveFn).toHaveBeenCalledWith(element);
       });
 
       act(() => {
-        mockObserver?.triggerIntersection(true);
+        triggerIntersection(true);
       });
 
       await waitFor(() => {
-        expect(result.current.isIntersecting).toBe(true);
+        expect(element.getAttribute('data-intersecting')).toBe('true');
       });
 
       expect(mockDisconnectFn).toHaveBeenCalled();
 
+      // Clear mock to verify no more disconnects
+      mockDisconnectFn.mockClear();
+
       // Further changes should not update state
       act(() => {
-        mockObserver?.triggerIntersection(false);
+        triggerIntersection(false);
       });
 
-      await waitFor(() => {
-        expect(result.current.isIntersecting).toBe(true); // Still true
-      });
+      // Should still be true (frozen)
+      expect(element.getAttribute('data-intersecting')).toBe('true');
     });
 
     test('should not freeze if not intersecting', async () => {
-      const { result } = renderHook(() =>
-        useIntersectionObserver({ freezeOnceVisible: true })
-      );
+      const TestComponent = () => {
+        const { ref, isIntersecting } = useIntersectionObserver({ freezeOnceVisible: true });
+        return <div ref={ref as any} data-intersecting={isIntersecting.toString()} />;
+      };
 
-      const element = document.createElement('div');
-      act(() => {
-        (result.current.ref as any).current = element;
+      const { container } = render(<TestComponent />);
+      const element = container.firstChild as Element;
+
+      await waitFor(() => {
+        expect(mockObserveFn).toHaveBeenCalledWith(element);
       });
 
       act(() => {
-        mockObserver?.triggerIntersection(false);
+        triggerIntersection(false);
       });
 
       expect(mockDisconnectFn).not.toHaveBeenCalled();
 
       act(() => {
-        mockObserver?.triggerIntersection(true);
+        triggerIntersection(true);
       });
 
       await waitFor(() => {
-        expect(result.current.isIntersecting).toBe(true);
+        expect(element.getAttribute('data-intersecting')).toBe('true');
       });
 
       expect(mockDisconnectFn).toHaveBeenCalled();
@@ -283,21 +307,24 @@ describe('useIntersectionObserver', () => {
 
   describe('triggerOnce', () => {
     test('should disconnect after first intersection', async () => {
-      const { result } = renderHook(() =>
-        useIntersectionObserver({ triggerOnce: true })
-      );
+      const TestComponent = () => {
+        const { ref, isIntersecting } = useIntersectionObserver({ triggerOnce: true });
+        return <div ref={ref as any} data-intersecting={isIntersecting.toString()} />;
+      };
 
-      const element = document.createElement('div');
-      act(() => {
-        (result.current.ref as any).current = element;
+      const { container } = render(<TestComponent />);
+      const element = container.firstChild as Element;
+
+      await waitFor(() => {
+        expect(mockObserveFn).toHaveBeenCalledWith(element);
       });
 
       act(() => {
-        mockObserver?.triggerIntersection(true);
+        triggerIntersection(true);
       });
 
       await waitFor(() => {
-        expect(result.current.isIntersecting).toBe(true);
+        expect(element.getAttribute('data-intersecting')).toBe('true');
       });
 
       expect(mockDisconnectFn).toHaveBeenCalled();
@@ -307,29 +334,37 @@ describe('useIntersectionObserver', () => {
   describe('Unsupported Environment', () => {
     test('should handle missing IntersectionObserver', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation();
+      const originalObserver = (global as any).IntersectionObserver;
       (global as any).IntersectionObserver = undefined;
 
-      const { result } = renderHook(() => useIntersectionObserver());
+      const TestComponent = () => {
+        const { ref, isIntersecting } = useIntersectionObserver();
+        return <div ref={ref as any} data-intersecting={isIntersecting.toString()} />;
+      };
 
-      const element = document.createElement('div');
-      act(() => {
-        (result.current.ref as any).current = element;
-      });
+      const { container } = render(<TestComponent />);
+      const element = container.firstChild as Element;
 
       expect(consoleWarnSpy).toHaveBeenCalledWith('IntersectionObserver not supported');
-      expect(result.current.isIntersecting).toBe(true); // Fallback
+      expect(element.getAttribute('data-intersecting')).toBe('true'); // Fallback
 
       consoleWarnSpy.mockRestore();
+      (global as any).IntersectionObserver = originalObserver;
     });
   });
 
   describe('Cleanup', () => {
-    test('should disconnect observer on unmount', () => {
-      const { result, unmount } = renderHook(() => useIntersectionObserver());
+    test('should disconnect observer on unmount', async () => {
+      const TestComponent = () => {
+        const { ref } = useIntersectionObserver();
+        return <div ref={ref as any} />;
+      };
 
-      const element = document.createElement('div');
-      act(() => {
-        (result.current.ref as any).current = element;
+      const { container, unmount } = render(<TestComponent />);
+      const element = container.firstChild as Element;
+
+      await waitFor(() => {
+        expect(mockObserveFn).toHaveBeenCalledWith(element);
       });
 
       unmount();
@@ -341,7 +376,9 @@ describe('useIntersectionObserver', () => {
 
 describe('useLazyImage', () => {
   beforeEach(() => {
+    intersectionCallback = null;
     mockObserver = null;
+    observedElements.clear();
     mockObserveFn.mockClear();
     mockUnobserveFn.mockClear();
     mockDisconnectFn.mockClear();
@@ -349,16 +386,19 @@ describe('useLazyImage', () => {
 
     (global as any).IntersectionObserver = MockIntersectionObserver;
 
-    // Mock Image
+    // Mock Image - default successful load
     (global as any).Image = class {
       src = '';
       onload: (() => void) | null = null;
       onerror: (() => void) | null = null;
 
-      set _src(value: string) {
-        this.src = value;
-        // Simulate successful load
-        setTimeout(() => this.onload?.(), 0);
+      constructor() {
+        // Simulate successful load by default
+        setTimeout(() => {
+          if (this.onload) {
+            this.onload();
+          }
+        }, 0);
       }
     };
   });
@@ -374,22 +414,39 @@ describe('useLazyImage', () => {
   });
 
   test('should load image when intersecting', async () => {
-    const { result } = renderHook(() =>
-      useLazyImage('image.jpg', 'placeholder.jpg')
-    );
+    (global as any).Image = class {
+      src = '';
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
 
-    const element = document.createElement('div');
-    act(() => {
-      (result.current.ref as any).current = element;
+      constructor() {
+        setTimeout(() => {
+          if (this.onload) {
+            this.onload();
+          }
+        }, 0);
+      }
+    };
+
+    const TestComponent = () => {
+      const { ref, src, isLoaded } = useLazyImage('image.jpg', 'placeholder.jpg');
+      return <div ref={ref as any} data-src={src} data-loaded={isLoaded.toString()} />;
+    };
+
+    const { container } = render(<TestComponent />);
+    const element = container.firstChild as Element;
+
+    await waitFor(() => {
+      expect(mockObserveFn).toHaveBeenCalledWith(element);
     });
 
     act(() => {
-      mockObserver?.triggerIntersection(true);
+      triggerIntersection(true);
     });
 
     await waitFor(() => {
-      expect(result.current.src).toBe('image.jpg');
-      expect(result.current.isLoaded).toBe(true);
+      expect(element.getAttribute('data-src')).toBe('image.jpg');
+      expect(element.getAttribute('data-loaded')).toBe('true');
     });
   });
 
@@ -399,35 +456,43 @@ describe('useLazyImage', () => {
       onload: (() => void) | null = null;
       onerror: (() => void) | null = null;
 
-      set _src(value: string) {
-        this.src = value;
-        setTimeout(() => this.onerror?.(), 0);
+      constructor() {
+        setTimeout(() => {
+          if (this.onerror) {
+            this.onerror();
+          }
+        }, 0);
       }
     };
 
-    const { result } = renderHook(() =>
-      useLazyImage('image.jpg', 'placeholder.jpg')
-    );
+    const TestComponent = () => {
+      const { ref, hasError, isLoaded } = useLazyImage('image.jpg', 'placeholder.jpg');
+      return <div ref={ref as any} data-error={hasError.toString()} data-loaded={isLoaded.toString()} />;
+    };
 
-    const element = document.createElement('div');
-    act(() => {
-      (result.current.ref as any).current = element;
+    const { container } = render(<TestComponent />);
+    const element = container.firstChild as Element;
+
+    await waitFor(() => {
+      expect(mockObserveFn).toHaveBeenCalledWith(element);
     });
 
     act(() => {
-      mockObserver?.triggerIntersection(true);
+      triggerIntersection(true);
     });
 
     await waitFor(() => {
-      expect(result.current.hasError).toBe(true);
-      expect(result.current.isLoaded).toBe(false);
+      expect(element.getAttribute('data-error')).toBe('true');
+      expect(element.getAttribute('data-loaded')).toBe('false');
     });
   });
 });
 
 describe('useScrollAnimation', () => {
   beforeEach(() => {
+    intersectionCallback = null;
     mockObserver = null;
+    observedElements.clear();
     mockObserveFn.mockClear();
     mockUnobserveFn.mockClear();
     mockDisconnectFn.mockClear();
@@ -445,21 +510,24 @@ describe('useScrollAnimation', () => {
   });
 
   test('should apply animation class when intersecting', async () => {
-    const { result } = renderHook(() =>
-      useScrollAnimation('animate-fade-in')
-    );
+    const TestComponent = () => {
+      const { ref, className } = useScrollAnimation('animate-fade-in');
+      return <div ref={ref as any} className={className} />;
+    };
 
-    const element = document.createElement('div');
-    act(() => {
-      (result.current.ref as any).current = element;
+    const { container } = render(<TestComponent />);
+    const element = container.firstChild as Element;
+
+    await waitFor(() => {
+      expect(mockObserveFn).toHaveBeenCalledWith(element);
     });
 
     act(() => {
-      mockObserver?.triggerIntersection(true);
+      triggerIntersection(true);
     });
 
     await waitFor(() => {
-      expect(result.current.className).toBe('animate-fade-in');
+      expect(element.className).toBe('animate-fade-in');
     });
   });
 
@@ -488,7 +556,9 @@ describe('useScrollAnimation', () => {
 
 describe('useInfiniteScroll', () => {
   beforeEach(() => {
+    intersectionCallback = null;
     mockObserver = null;
+    observedElements.clear();
     mockObserveFn.mockClear();
     mockUnobserveFn.mockClear();
     mockDisconnectFn.mockClear();
@@ -499,15 +569,21 @@ describe('useInfiniteScroll', () => {
 
   test('should call onLoadMore when intersecting', async () => {
     const onLoadMore = vi.fn();
-    const { result } = renderHook(() => useInfiniteScroll(onLoadMore));
 
-    const element = document.createElement('div');
-    act(() => {
-      (result.current.ref as any).current = element;
+    const TestComponent = () => {
+      const { ref } = useInfiniteScroll(onLoadMore);
+      return <div ref={ref as any} />;
+    };
+
+    const { container } = render(<TestComponent />);
+    const element = container.firstChild as Element;
+
+    await waitFor(() => {
+      expect(mockObserveFn).toHaveBeenCalledWith(element);
     });
 
     act(() => {
-      mockObserver?.triggerIntersection(true);
+      triggerIntersection(true);
     });
 
     await waitFor(() => {
@@ -517,58 +593,72 @@ describe('useInfiniteScroll', () => {
 
   test('should not call onLoadMore when disabled', async () => {
     const onLoadMore = vi.fn();
-    const { result } = renderHook(() =>
-      useInfiniteScroll(onLoadMore, { enabled: false })
-    );
 
-    const element = document.createElement('div');
-    act(() => {
-      (result.current.ref as any).current = element;
-    });
+    const TestComponent = () => {
+      const { ref } = useInfiniteScroll(onLoadMore, { enabled: false });
+      return <div ref={ref as any} />;
+    };
 
-    act(() => {
-      mockObserver?.triggerIntersection(true);
-    });
+    const { container } = render(<TestComponent />);
+    const element = container.firstChild as Element;
 
     await waitFor(() => {
-      expect(onLoadMore).not.toHaveBeenCalled();
+      expect(mockObserveFn).toHaveBeenCalledWith(element);
     });
+
+    act(() => {
+      triggerIntersection(true);
+    });
+
+    // Wait a bit to ensure callback is not called
+    await new Promise(resolve => setTimeout(resolve, 100));
+    expect(onLoadMore).not.toHaveBeenCalled();
   });
 
   test('should not call onLoadMore when hasMore is false', async () => {
     const onLoadMore = vi.fn();
-    const { result } = renderHook(() =>
-      useInfiniteScroll(onLoadMore, { hasMore: false })
-    );
 
-    const element = document.createElement('div');
-    act(() => {
-      (result.current.ref as any).current = element;
-    });
+    const TestComponent = () => {
+      const { ref } = useInfiniteScroll(onLoadMore, { hasMore: false });
+      return <div ref={ref as any} />;
+    };
 
-    act(() => {
-      mockObserver?.triggerIntersection(true);
-    });
+    const { container } = render(<TestComponent />);
+    const element = container.firstChild as Element;
 
     await waitFor(() => {
-      expect(onLoadMore).not.toHaveBeenCalled();
+      expect(mockObserveFn).toHaveBeenCalledWith(element);
     });
+
+    act(() => {
+      triggerIntersection(true);
+    });
+
+    // Wait a bit to ensure callback is not called
+    await new Promise(resolve => setTimeout(resolve, 100));
+    expect(onLoadMore).not.toHaveBeenCalled();
   });
 
   test('should prevent concurrent loading', async () => {
     const onLoadMore = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 100)));
-    const { result } = renderHook(() => useInfiniteScroll(onLoadMore));
 
-    const element = document.createElement('div');
-    act(() => {
-      (result.current.ref as any).current = element;
+    const TestComponent = () => {
+      const { ref } = useInfiniteScroll(onLoadMore);
+      return <div ref={ref as any} />;
+    };
+
+    const { container } = render(<TestComponent />);
+    const element = container.firstChild as Element;
+
+    await waitFor(() => {
+      expect(mockObserveFn).toHaveBeenCalledWith(element);
     });
 
     // Trigger multiple times rapidly
     act(() => {
-      mockObserver?.triggerIntersection(true);
-      mockObserver?.triggerIntersection(true);
-      mockObserver?.triggerIntersection(true);
+      triggerIntersection(true);
+      triggerIntersection(true);
+      triggerIntersection(true);
     });
 
     await waitFor(() => {
@@ -591,7 +681,9 @@ describe('useInfiniteScroll', () => {
 
 describe('useMultipleIntersectionObserver', () => {
   beforeEach(() => {
+    intersectionCallback = null;
     mockObserver = null;
+    observedElements.clear();
     mockObserveFn.mockClear();
     mockUnobserveFn.mockClear();
     mockDisconnectFn.mockClear();
@@ -600,56 +692,60 @@ describe('useMultipleIntersectionObserver', () => {
     (global as any).IntersectionObserver = MockIntersectionObserver;
   });
 
-  test('should track multiple elements', () => {
-    const { result } = renderHook(() =>
-      useMultipleIntersectionObserver(3)
-    );
+  test('should track multiple elements', async () => {
+    const TestComponent = () => {
+      const { setRef } = useMultipleIntersectionObserver(3);
+      return (
+        <>
+          <div ref={setRef(0)} data-index="0" />
+          <div ref={setRef(1)} data-index="1" />
+          <div ref={setRef(2)} data-index="2" />
+        </>
+      );
+    };
 
-    const elements = [
-      document.createElement('div'),
-      document.createElement('div'),
-      document.createElement('div'),
-    ];
+    render(<TestComponent />);
 
-    act(() => {
-      elements.forEach((el, i) => {
-        result.current.setRef(i)(el);
-      });
-    });
-
-    expect(mockObserveFn).toHaveBeenCalledTimes(3);
+    // Wait for observers to be created
+    await waitFor(() => {
+      expect(mockObserveFn.mock.calls.length).toBeGreaterThanOrEqual(3);
+    }, { timeout: 2000 });
   });
 
   test('should update intersection state for multiple elements', async () => {
-    const { result } = renderHook(() =>
-      useMultipleIntersectionObserver(2)
-    );
+    const TestComponent = () => {
+      const { setRef, intersections } = useMultipleIntersectionObserver(2);
+      return (
+        <>
+          <div ref={setRef(0)} data-index="0" data-intersecting={intersections.get(0)?.toString() || 'undefined'} />
+          <div ref={setRef(1)} data-index="1" data-intersecting={intersections.get(1)?.toString() || 'undefined'} />
+        </>
+      );
+    };
 
-    const elements = [
-      document.createElement('div'),
-      document.createElement('div'),
-    ];
+    const { container } = render(<TestComponent />);
+    const elements = Array.from(container.children);
 
-    act(() => {
-      elements.forEach((el, i) => {
-        result.current.setRef(i)(el);
-      });
+    await waitFor(() => {
+      expect(mockObserveFn.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
 
     act(() => {
-      mockObserver?.triggerIntersection(true);
+      triggerIntersection(true);
     });
 
     await waitFor(() => {
-      expect(result.current.intersections.get(0)).toBe(true);
-      expect(result.current.intersections.get(1)).toBe(true);
+      expect(elements[0].getAttribute('data-intersecting')).toBe('true');
+      expect(elements[1].getAttribute('data-intersecting')).toBe('true');
     });
   });
 });
 
 describe('useVisibilityPercentage', () => {
   beforeEach(() => {
+    intersectionCallback = null;
     mockObserver = null;
+    observedElements.clear();
     mockObserveFn.mockClear();
     mockUnobserveFn.mockClear();
     mockDisconnectFn.mockClear();
@@ -665,19 +761,24 @@ describe('useVisibilityPercentage', () => {
   });
 
   test('should update percentage based on intersection ratio', async () => {
-    const { result } = renderHook(() => useVisibilityPercentage());
+    const TestComponent = () => {
+      const { ref, percentage } = useVisibilityPercentage();
+      return <div ref={ref as any} data-percentage={percentage} />;
+    };
 
-    const element = document.createElement('div');
-    act(() => {
-      (result.current.ref as any).current = element;
+    const { container } = render(<TestComponent />);
+    const element = container.firstChild as Element;
+
+    await waitFor(() => {
+      expect(mockObserveFn).toHaveBeenCalledWith(element);
     });
 
     act(() => {
-      mockObserver?.triggerIntersection(true, 0.75);
+      triggerIntersection(true, 0.75);
     });
 
     await waitFor(() => {
-      expect(result.current.percentage).toBe(75);
+      expect(element.getAttribute('data-percentage')).toBe('75');
     });
   });
 

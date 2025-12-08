@@ -1,7 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { SharePane, SharePaneProps, Collaborator } from '@/components/mobile/workspace/panes/SharePane';
 import userEvent from '@testing-library/user-event';
+
+// Mock useHaptics hook
+vi.mock('@/hooks/mobile/useHaptics', () => ({
+  useHaptics: () => ({
+    trigger: vi.fn(),
+    isSupported: true,
+  }),
+}));
 
 describe('SharePane', () => {
   const mockCollaborators: Collaborator[] = [
@@ -31,15 +39,33 @@ describe('SharePane', () => {
     onUpdatePermission: vi.fn(),
   };
 
+  let writeTextMock: ReturnType<typeof vi.fn>;
+  let openMock: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock clipboard
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
+
+    // Create fresh mock functions
+    writeTextMock = vi.fn().mockResolvedValue(undefined);
+
+    // Setup clipboard mock with proper vi.fn() mocks
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: writeTextMock,
+        readText: vi.fn().mockResolvedValue(''),
       },
-      share: undefined,
+      writable: true,
+      configurable: true,
     });
+
+    // Remove share so we can test when it's undefined
+    if ('share' in navigator) {
+      delete (navigator as any).share;
+    }
+
+    // Setup window.open mock
+    openMock = vi.fn();
+    vi.spyOn(window, 'open').mockImplementation(openMock);
   });
 
   describe('Rendering', () => {
@@ -59,13 +85,15 @@ describe('SharePane', () => {
     it('renders copy link button', () => {
       render(<SharePane {...defaultProps} />);
 
-      expect(screen.getByText('Copy Link')).toBeInTheDocument();
+      // There are two Copy Link buttons (one in main section, one in social)
+      const copyButtons = screen.getAllByText('Copy Link');
+      expect(copyButtons.length).toBeGreaterThanOrEqual(1);
     });
 
     it('renders invite collaborators section', () => {
       render(<SharePane {...defaultProps} />);
 
-      expect(screen.getByText('Invite collaborators')).toBeInTheDocument();
+      expect(screen.getByText(/invite collaborators/i)).toBeInTheDocument();
     });
 
     it('renders embed section', () => {
@@ -88,10 +116,11 @@ describe('SharePane', () => {
       const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
-      const copyButton = screen.getAllByText('Copy Link')[0];
-      await user.click(copyButton);
+      // Get the first Copy Link button (in Share your app section)
+      const copyButtons = screen.getAllByText('Copy Link');
+      await user.click(copyButtons[0]);
 
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(defaultProps.projectUrl);
+      expect(writeTextMock).toHaveBeenCalledWith(defaultProps.projectUrl);
       expect(defaultProps.onCopyLink).toHaveBeenCalled();
     });
 
@@ -130,32 +159,36 @@ describe('SharePane', () => {
 
   describe('System Share', () => {
     it('renders share button when navigator.share is available', () => {
-      Object.assign(navigator, { share: vi.fn() });
+      (global.navigator as any).share = vi.fn().mockResolvedValue(undefined);
 
       render(<SharePane {...defaultProps} />);
 
-      expect(screen.getByText('Share')).toBeInTheDocument();
+      // Find the Share button (not the heading)
+      const shareButton = screen.getAllByText('Share').find(el => el.tagName === 'BUTTON');
+      expect(shareButton).toBeInTheDocument();
     });
 
     it('does not render share button when navigator.share is unavailable', () => {
-      Object.assign(navigator, { share: undefined });
+      (global.navigator as any).share = undefined;
 
       render(<SharePane {...defaultProps} />);
 
-      const shareButtons = screen.queryAllByText('Share');
-      // Should only be the "Share on social" heading, not a button
-      expect(shareButtons.length).toBe(1);
+      // Find buttons with "Share" text
+      const shareButtons = screen.getAllByText('Share').filter(el => el.tagName === 'BUTTON');
+      // Should not find the system share button
+      expect(shareButtons.length).toBe(0);
     });
 
     it('calls navigator.share with correct data', async () => {
       const user = userEvent.setup();
       const mockShare = vi.fn().mockResolvedValue(undefined);
-      Object.assign(navigator, { share: mockShare });
+      (global.navigator as any).share = mockShare;
 
       render(<SharePane {...defaultProps} />);
 
-      const shareButton = screen.getByText('Share');
-      await user.click(shareButton);
+      const shareButton = screen.getAllByText('Share').find(el => el.tagName === 'BUTTON');
+      expect(shareButton).toBeDefined();
+      await user.click(shareButton!);
 
       expect(mockShare).toHaveBeenCalledWith({
         title: defaultProps.projectName,
@@ -176,8 +209,10 @@ describe('SharePane', () => {
     it('renders permission selector', () => {
       render(<SharePane {...defaultProps} />);
 
-      const select = screen.getByRole('combobox');
-      expect(select).toBeInTheDocument();
+      // There are multiple comboboxes (one for invite form, others for collaborators)
+      const selects = screen.getAllByRole('combobox');
+      expect(selects.length).toBeGreaterThan(0);
+      expect(selects[0]).toBeInTheDocument();
     });
 
     it('calls onInvite with email and permission', async () => {
@@ -185,12 +220,17 @@ describe('SharePane', () => {
       render(<SharePane {...defaultProps} />);
 
       const emailInput = screen.getByPlaceholderText('email@example.com');
-      const permissionSelect = screen.getByRole('combobox');
-      const inviteButton = screen.getByRole('button', { name: '' }); // Send icon button
+      const permissionSelects = screen.getAllByRole('combobox');
+      const invitePermissionSelect = permissionSelects[0]; // First select is for invite form
+      const inviteButtons = document.querySelectorAll('button');
+      // Find the Send button (icon button in invite form)
+      const inviteButton = Array.from(inviteButtons).find(btn =>
+        btn.querySelector('svg') && btn.parentElement?.querySelector('input[type="email"]')
+      );
 
       await user.type(emailInput, 'newuser@example.com');
-      await user.selectOptions(permissionSelect, 'view');
-      await user.click(inviteButton);
+      await user.selectOptions(invitePermissionSelect, 'view');
+      await user.click(inviteButton!);
 
       expect(defaultProps.onInvite).toHaveBeenCalledWith('newuser@example.com', 'view');
     });
@@ -200,10 +240,13 @@ describe('SharePane', () => {
       render(<SharePane {...defaultProps} />);
 
       const emailInput = screen.getByPlaceholderText('email@example.com') as HTMLInputElement;
-      const inviteButton = screen.getByRole('button', { name: '' });
+      const inviteButtons = document.querySelectorAll('button');
+      const inviteButton = Array.from(inviteButtons).find(btn =>
+        btn.querySelector('svg') && btn.parentElement?.querySelector('input[type="email"]')
+      );
 
       await user.type(emailInput, 'user@example.com');
-      await user.click(inviteButton);
+      await user.click(inviteButton!);
 
       await waitFor(() => {
         expect(emailInput.value).toBe('');
@@ -213,7 +256,10 @@ describe('SharePane', () => {
     it('disables invite button for invalid email', () => {
       render(<SharePane {...defaultProps} />);
 
-      const inviteButton = screen.getByRole('button', { name: '' });
+      const inviteButtons = document.querySelectorAll('button');
+      const inviteButton = Array.from(inviteButtons).find(btn =>
+        btn.querySelector('svg') && btn.parentElement?.querySelector('input[type="email"]')
+      );
       expect(inviteButton).toBeDisabled();
     });
 
@@ -222,11 +268,13 @@ describe('SharePane', () => {
       render(<SharePane {...defaultProps} />);
 
       const emailInput = screen.getByPlaceholderText('email@example.com');
-      const inviteButton = screen.getByRole('button', { name: '' });
-
       await user.type(emailInput, 'valid@example.com');
 
       await waitFor(() => {
+        const inviteButtons = document.querySelectorAll('button');
+        const inviteButton = Array.from(inviteButtons).find(btn =>
+          btn.querySelector('svg') && btn.parentElement?.querySelector('input[type="email"]')
+        );
         expect(inviteButton).not.toBeDisabled();
       });
     });
@@ -308,14 +356,15 @@ describe('SharePane', () => {
     });
 
     it('changes embed size when option clicked', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       const smallButton = screen.getByText('Small');
-      await user.click(smallButton);
+      fireEvent.click(smallButton);
 
       // Check that dimensions updated
-      expect(screen.getByText('400 × 300')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('400 × 300')).toBeInTheDocument();
+      });
     });
 
     it('generates correct embed code for medium size', () => {
@@ -327,24 +376,24 @@ describe('SharePane', () => {
     });
 
     it('copies embed code to clipboard', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       const copyEmbedButton = screen.getByText('Copy Embed Code');
-      await user.click(copyEmbedButton);
+      fireEvent.click(copyEmbedButton);
 
-      expect(navigator.clipboard.writeText).toHaveBeenCalled();
-      const clipboardCall = (navigator.clipboard.writeText as any).mock.calls[0][0];
+      await waitFor(() => {
+        expect(writeTextMock).toHaveBeenCalled();
+      });
+      const clipboardCall = writeTextMock.mock.calls[0][0];
       expect(clipboardCall).toContain('<iframe');
       expect(clipboardCall).toContain(defaultProps.projectUrl);
     });
 
     it('shows copied state for embed code', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       const copyEmbedButton = screen.getByText('Copy Embed Code');
-      await user.click(copyEmbedButton);
+      fireEvent.click(copyEmbedButton);
 
       await waitFor(() => {
         expect(screen.getByText('Copied!')).toBeInTheDocument();
@@ -353,17 +402,13 @@ describe('SharePane', () => {
   });
 
   describe('Social Sharing', () => {
-    it('opens Twitter share dialog', async () => {
-      const user = userEvent.setup();
-      const windowOpen = vi.fn();
-      (global as any).window = { open: windowOpen };
-
+    it('opens Twitter share dialog', () => {
       render(<SharePane {...defaultProps} />);
 
       const twitterButton = screen.getByText('Twitter/X');
-      await user.click(twitterButton);
+      fireEvent.click(twitterButton);
 
-      expect(windowOpen).toHaveBeenCalledWith(
+      expect(openMock).toHaveBeenCalledWith(
         expect.stringContaining('twitter.com/intent/tweet'),
         '_blank',
         'width=600,height=400'
@@ -371,17 +416,13 @@ describe('SharePane', () => {
       expect(defaultProps.onShare).toHaveBeenCalledWith('twitter');
     });
 
-    it('opens LinkedIn share dialog', async () => {
-      const user = userEvent.setup();
-      const windowOpen = vi.fn();
-      (global as any).window = { open: windowOpen };
-
+    it('opens LinkedIn share dialog', () => {
       render(<SharePane {...defaultProps} />);
 
       const linkedinButton = screen.getByText('LinkedIn');
-      await user.click(linkedinButton);
+      fireEvent.click(linkedinButton);
 
-      expect(windowOpen).toHaveBeenCalledWith(
+      expect(openMock).toHaveBeenCalledWith(
         expect.stringContaining('linkedin.com/sharing'),
         '_blank',
         'width=600,height=400'
@@ -392,20 +433,19 @@ describe('SharePane', () => {
 
   describe('QR Code', () => {
     it('toggles QR code visibility', async () => {
-      const user = userEvent.setup();
       render(<SharePane {...defaultProps} />);
 
       const qrButton = screen.getByText('QR Code');
 
       expect(screen.queryByText('Scan to open project')).not.toBeInTheDocument();
 
-      await user.click(qrButton);
+      fireEvent.click(qrButton);
 
       await waitFor(() => {
         expect(screen.getByText('Scan to open project')).toBeInTheDocument();
       });
 
-      await user.click(qrButton);
+      fireEvent.click(qrButton);
 
       await waitFor(() => {
         expect(screen.queryByText('Scan to open project')).not.toBeInTheDocument();
@@ -417,7 +457,9 @@ describe('SharePane', () => {
     it('handles empty collaborators list', () => {
       render(<SharePane {...defaultProps} collaborators={[]} />);
 
-      expect(screen.queryByText(/collaborator/)).not.toBeInTheDocument();
+      // When no collaborators, the count text should not appear
+      // (The "Invite collaborators" header still shows)
+      expect(screen.queryByText(/\d+ collaborator/)).not.toBeInTheDocument();
     });
   });
 
@@ -425,7 +467,9 @@ describe('SharePane', () => {
     it('has proper ARIA labels', () => {
       render(<SharePane {...defaultProps} />);
 
-      expect(screen.getByLabelText('Remove collaborator')).toBeInTheDocument();
+      // There are multiple collaborators, so there are multiple remove buttons
+      const removeButtons = screen.getAllByLabelText('Remove collaborator');
+      expect(removeButtons.length).toBeGreaterThanOrEqual(1);
     });
 
     it('has semantic structure', () => {

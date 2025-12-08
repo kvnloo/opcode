@@ -5,7 +5,7 @@ import { ToolsOverlay } from '@/components/mobile/workspace/ToolsOverlay';
 // Mock ToolItem component
 vi.mock('@/components/mobile/workspace/tools/ToolItem', () => ({
   ToolItem: ({ tool, onClick }: any) => (
-    <button onClick={() => onClick(tool)} data-testid={`tool-${tool.id}`}>
+    <button onClick={onClick} data-testid={`tool-${tool.id}`}>
       {tool.name} - {tool.description}
     </button>
   ),
@@ -53,12 +53,12 @@ describe('ToolsOverlay', () => {
       expect(screen.getByLabelText('Close tools overlay')).toBeInTheDocument();
     });
 
-    it('should render all 18 tools', () => {
+    it('should render all 20 tools', () => {
       const { container } = render(<ToolsOverlay {...defaultProps} />);
 
-      // Count all tool buttons (search tools + other tools)
+      // Count all tool buttons (2 search + 18 tools = 20 total)
       const toolButtons = container.querySelectorAll('[data-testid^="tool-"]');
-      expect(toolButtons.length).toBe(18);
+      expect(toolButtons.length).toBe(20);
     });
   });
 
@@ -124,7 +124,7 @@ describe('ToolsOverlay', () => {
       fireEvent.change(searchInput, { target: { value: '' } });
 
       const toolButtons = container.querySelectorAll('[data-testid^="tool-"]');
-      expect(toolButtons.length).toBe(18);
+      expect(toolButtons.length).toBe(20);
     });
 
     it('should show clear button when search has text', () => {
@@ -169,32 +169,38 @@ describe('ToolsOverlay', () => {
   });
 
   describe('Tool selection', () => {
-    it('should call onToolSelect when tool clicked', () => {
+    it('should call onToolSelect when tool clicked', async () => {
       render(<ToolsOverlay {...defaultProps} />);
 
       const agentTool = screen.getByTestId('tool-agent');
       fireEvent.click(agentTool);
 
-      expect(mockOnToolSelect).toHaveBeenCalledWith('agent');
+      await waitFor(() => {
+        expect(mockOnToolSelect).toHaveBeenCalledWith('agent');
+      });
     });
 
-    it('should close overlay after tool selection', () => {
+    it('should close overlay after tool selection', async () => {
       render(<ToolsOverlay {...defaultProps} />);
 
       const agentTool = screen.getByTestId('tool-agent');
       fireEvent.click(agentTool);
 
-      expect(mockOnClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(mockOnClose).toHaveBeenCalledTimes(1);
+      });
     });
 
-    it('should handle multiple tool selections', () => {
+    it('should handle multiple tool selections', async () => {
       render(<ToolsOverlay {...defaultProps} />);
 
       const agentTool = screen.getByTestId('tool-agent');
       fireEvent.click(agentTool);
 
-      expect(mockOnToolSelect).toHaveBeenCalledWith('agent');
-      expect(mockOnClose).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockOnToolSelect).toHaveBeenCalledWith('agent');
+        expect(mockOnClose).toHaveBeenCalled();
+      });
     });
   });
 
@@ -347,7 +353,7 @@ describe('ToolsOverlay', () => {
     });
   });
 
-  describe('All 18 tools', () => {
+  describe('All 20 tools', () => {
     it('should render all expected tools', () => {
       render(<ToolsOverlay {...defaultProps} />);
 
@@ -370,6 +376,8 @@ describe('ToolsOverlay', () => {
         'secrets',
         'security',
         'shell',
+        'settings',
+        'workflows',
       ];
 
       expectedTools.forEach((toolId) => {
@@ -377,15 +385,16 @@ describe('ToolsOverlay', () => {
       });
     });
 
-    it('should not render settings and workflows by default', () => {
-      render(<ToolsOverlay {...defaultProps} />);
-
-      // Settings and Workflows are in the list but we'll verify all 18 are rendered
+    it('should render exactly 20 tools', () => {
       const { container } = render(<ToolsOverlay {...defaultProps} />);
       const toolButtons = container.querySelectorAll('[data-testid^="tool-"]');
 
-      // Should have exactly 18 tools
-      expect(toolButtons.length).toBe(18);
+      // Should have exactly 20 tools (2 search + 18 tools)
+      expect(toolButtons.length).toBe(20);
+
+      // Verify settings and workflows are present
+      expect(screen.getByTestId('tool-settings')).toBeInTheDocument();
+      expect(screen.getByTestId('tool-workflows')).toBeInTheDocument();
     });
   });
 
@@ -422,15 +431,14 @@ describe('ToolsOverlay', () => {
 
   describe('Edge cases', () => {
     it('should handle empty search query gracefully', () => {
-      render(<ToolsOverlay {...defaultProps} />);
+      const { container } = render(<ToolsOverlay {...defaultProps} />);
 
       const searchInput = screen.getByPlaceholderText('Search for tools and files');
       fireEvent.change(searchInput, { target: { value: '   ' } });
 
       // Should show all tools for whitespace-only query
-      const { container } = render(<ToolsOverlay {...defaultProps} />);
       const toolButtons = container.querySelectorAll('[data-testid^="tool-"]');
-      expect(toolButtons.length).toBe(18);
+      expect(toolButtons.length).toBe(20);
     });
 
     it('should handle rapid search changes', () => {
