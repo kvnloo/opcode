@@ -1,0 +1,442 @@
+/**
+ * Mobile Design Tokens - Replit-inspired Design System
+ *
+ * This file contains CSS custom properties converted from design tokens.
+ * It provides a consistent design system for the mobile application.
+ */
+
+:root {
+  /* ========================================
+   * COLORS - Background Palette
+   * ======================================== */
+  --mobile-bg-primary: #0F1419;
+  --mobile-bg-secondary: #1E2835;
+  --mobile-bg-tertiary: #2D3748;
+  --mobile-bg-elevated: #1E2835;
+  --mobile-bg-card: #1E2835;
+  --mobile-bg-input: #1E2835;
+  --mobile-bg-overlay: #0F1419E6;
+  --mobile-bg-app-preview: #1C2A3A;
+  --mobile-bg-app-card: #1E293B;
+
+  /* ========================================
+   * COLORS - Text Palette
+   * ======================================== */
+  --mobile-text-primary: #FFFFFF;
+  --mobile-text-secondary: #E2E8F0;
+  --mobile-text-tertiary: #6E7681;
+  --mobile-text-muted: #4A5568;
+  --mobile-text-disabled: #64748B;
+  --mobile-text-code: #FFFFFF;
+
+  /* ========================================
+   * COLORS - Border Palette
+   * ======================================== */
+  --mobile-border-default: #2D3748;
+  --mobile-border-subtle: #1E2835;
+  --mobile-border-active: #0969DA;
+  --mobile-border-focus: #0969DA;
+  --mobile-border-error: #DA3633;
+  --mobile-border-card: #334155;
+
+  /* ========================================
+   * COLORS - Accent Palette
+   * ======================================== */
+  --mobile-accent-primary: #0969DA;
+  --mobile-accent-primary-hover: #0860CA;
+  --mobile-accent-success: #2EA043;
+  --mobile-accent-warning: #D29922;
+  --mobile-accent-error: #DA3633;
+  --mobile-accent-info: #0969DA;
+  --mobile-accent-agent: #8B5CF6;
+  --mobile-accent-assistant: #06B6D4;
+  --mobile-accent-publishing: #2EA043;
+  --mobile-accent-gold: #F59E0B;
+  --mobile-accent-gold-dark: #D97706;
+
+  /* ========================================
+   * COLORS - Icon Palette
+   * ======================================== */
+  --mobile-icon-default: #6E7681;
+  --mobile-icon-active: #FFFFFF;
+  --mobile-icon-agent: #8B5CF6;
+  --mobile-icon-assistant: #06B6D4;
+  --mobile-icon-publishing: #2EA043;
+  --mobile-icon-database: #3B82F6;
+  --mobile-icon-console: #F59E0B;
+  --mobile-icon-git: #2EA043;
+  --mobile-icon-key-value: #8B5CF6;
+  --mobile-icon-workflows: #2EA043;
+  --mobile-icon-success: #2EA043;
+  --mobile-icon-error: #DA3633;
+
+  /* ========================================
+   * COLORS - Status Palette
+   * ======================================== */
+  --mobile-status-success: #2EA043;
+  --mobile-status-warning: #D29922;
+  --mobile-status-error: #DA3633;
+  --mobile-status-info: #0969DA;
+  --mobile-status-available: #2EA043;
+  --mobile-status-unavailable: #DA3633;
+
+  /* ========================================
+   * COLORS - Navigation Palette
+   * ======================================== */
+  --mobile-nav-active: #FFFFFF;
+  --mobile-nav-inactive: #6E7681;
+  --mobile-nav-indicator: #0969DA;
+  --mobile-nav-agent-indicator: #8B5CF6;
+
+  /* ========================================
+   * TYPOGRAPHY - Font Families
+   * ======================================== */
+  --mobile-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mobile-font-mono: 'SF Mono', Monaco, Consolas, 'Courier New', monospace;
+
+  /* ========================================
+   * TYPOGRAPHY - Font Sizes
+   * ======================================== */
+  --mobile-font-size-xs: 11px;
+  --mobile-font-size-sm: 12px;
+  --mobile-font-size-base: 13px;
+  --mobile-font-size-md: 14px;
+  --mobile-font-size-lg: 15px;
+  --mobile-font-size-xl: 16px;
+  --mobile-font-size-2xl: 18px;
+  --mobile-font-size-3xl: 20px;
+  --mobile-font-size-4xl: 24px;
+  --mobile-font-size-5xl: 32px;
+  --mobile-font-size-6xl: 48px;
+
+  /* ========================================
+   * TYPOGRAPHY - Font Weights
+   * ======================================== */
+  --mobile-font-weight-regular: 400;
+  --mobile-font-weight-medium: 500;
+  --mobile-font-weight-semibold: 600;
+  --mobile-font-weight-bold: 700;
+
+  /* ========================================
+   * TYPOGRAPHY - Line Heights
+   * ======================================== */
+  --mobile-line-height-tight: 1.2;
+  --mobile-line-height-snug: 1.3;
+  --mobile-line-height-normal: 1.5;
+  --mobile-line-height-relaxed: 1.6;
+  --mobile-line-height-loose: 1.75;
+
+  /* ========================================
+   * TYPOGRAPHY - Letter Spacing
+   * ======================================== */
+  --mobile-letter-spacing-tight: -0.025em;
+  --mobile-letter-spacing-normal: 0em;
+  --mobile-letter-spacing-wide: 0.025em;
+  --mobile-letter-spacing-wider: 0.05em;
+  --mobile-letter-spacing-widest: 0.5px;
+
+  /* ========================================
+   * SPACING - Scale
+   * ======================================== */
+  --mobile-space-0: 0px;
+  --mobile-space-1: 4px;
+  --mobile-space-2: 8px;
+  --mobile-space-3: 12px;
+  --mobile-space-4: 16px;
+  --mobile-space-5: 20px;
+  --mobile-space-6: 24px;
+  --mobile-space-7: 28px;
+  --mobile-space-8: 32px;
+  --mobile-space-10: 40px;
+  --mobile-space-12: 48px;
+  --mobile-space-16: 64px;
+  --mobile-space-20: 80px;
+
+  /* ========================================
+   * BORDER RADIUS
+   * ======================================== */
+  --mobile-radius-none: 0px;
+  --mobile-radius-sm: 4px;
+  --mobile-radius-base: 6px;
+  --mobile-radius-md: 8px;
+  --mobile-radius-lg: 12px;
+  --mobile-radius-xl: 16px;
+  --mobile-radius-full: 9999px;
+
+  /* ========================================
+   * SHADOWS
+   * ======================================== */
+  --mobile-shadow-none: none;
+  --mobile-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --mobile-shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --mobile-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --mobile-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --mobile-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --mobile-shadow-button: 0 4px 12px rgba(245, 158, 11, 0.3);
+  --mobile-shadow-button-active: 0 2px 8px rgba(245, 158, 11, 0.4);
+
+  /* ========================================
+   * TRANSITIONS
+   * ======================================== */
+  --mobile-transition-fast: 150ms;
+  --mobile-transition-base: 200ms;
+  --mobile-transition-slow: 300ms;
+  --mobile-transition-ease: ease;
+  --mobile-transition-ease-in: ease-in;
+  --mobile-transition-ease-out: ease-out;
+  --mobile-transition-ease-in-out: ease-in-out;
+  --mobile-transition-linear: linear;
+
+  /* ========================================
+   * Z-INDEX
+   * ======================================== */
+  --mobile-z-base: 0;
+  --mobile-z-dropdown: 1000;
+  --mobile-z-sticky: 1100;
+  --mobile-z-fixed: 1200;
+  --mobile-z-modal-backdrop: 1300;
+  --mobile-z-modal: 1400;
+  --mobile-z-popover: 1500;
+  --mobile-z-tooltip: 1600;
+
+  /* ========================================
+   * COMPONENT SPECIFICATIONS - Header
+   * ======================================== */
+  --mobile-header-height: 56px;
+  --mobile-header-padding: 12px 16px;
+
+  /* ========================================
+   * COMPONENT SPECIFICATIONS - Navigation
+   * ======================================== */
+  --mobile-nav-height: 64px;
+  --mobile-nav-item-height: 48px;
+  --mobile-nav-icon-size: 24px;
+  --mobile-nav-indicator-height: 2px;
+
+  /* ========================================
+   * COMPONENT SPECIFICATIONS - Button
+   * ======================================== */
+  --mobile-button-height-sm: 32px;
+  --mobile-button-height-base: 40px;
+  --mobile-button-height-md: 44px;
+  --mobile-button-height-lg: 48px;
+  --mobile-button-height-xl: 56px;
+  --mobile-button-padding-sm: 6px 12px;
+  --mobile-button-padding-base: 8px 16px;
+  --mobile-button-padding-md: 10px 20px;
+  --mobile-button-padding-lg: 12px 24px;
+  --mobile-button-radius: 8px;
+
+  /* ========================================
+   * COMPONENT SPECIFICATIONS - Input
+   * ======================================== */
+  --mobile-input-height-sm: 32px;
+  --mobile-input-height-base: 40px;
+  --mobile-input-height-md: 44px;
+  --mobile-input-padding: 8px 12px;
+  --mobile-input-radius: 8px;
+  --mobile-input-border-width: 1px;
+
+  /* ========================================
+   * COMPONENT SPECIFICATIONS - Card
+   * ======================================== */
+  --mobile-card-padding: 16px;
+  --mobile-card-radius: 12px;
+  --mobile-card-border-width: 1px;
+
+  /* ========================================
+   * COMPONENT SPECIFICATIONS - Avatar
+   * ======================================== */
+  --mobile-avatar-sm: 32px;
+  --mobile-avatar-base: 48px;
+  --mobile-avatar-lg: 64px;
+  --mobile-avatar-xl: 96px;
+
+  /* ========================================
+   * COMPONENT SPECIFICATIONS - Icon
+   * ======================================== */
+  --mobile-icon-xs: 16px;
+  --mobile-icon-sm: 20px;
+  --mobile-icon-base: 24px;
+  --mobile-icon-lg: 32px;
+
+  /* ========================================
+   * COMPONENT SPECIFICATIONS - Touch Target
+   * ======================================== */
+  --mobile-touch-target-min: 44px;
+
+  /* ========================================
+   * LAYOUT - Max Width
+   * ======================================== */
+  --mobile-max-width-sm: 320px;
+  --mobile-max-width-md: 560px;
+  --mobile-max-width-lg: 768px;
+  --mobile-max-width-xl: 1024px;
+
+  /* ========================================
+   * LAYOUT - Padding
+   * ======================================== */
+  --mobile-layout-padding-screen: 16px;
+  --mobile-layout-padding-section: 24px;
+
+  /* ========================================
+   * LAYOUT - Gap
+   * ======================================== */
+  --mobile-gap-tight: 4px;
+  --mobile-gap-base: 8px;
+  --mobile-gap-relaxed: 12px;
+  --mobile-gap-loose: 16px;
+
+  /* ========================================
+   * ANIMATION - Duration
+   * ======================================== */
+  --mobile-animation-instant: 100ms;
+  --mobile-animation-fast: 150ms;
+  --mobile-animation-base: 200ms;
+  --mobile-animation-slow: 300ms;
+  --mobile-animation-slower: 500ms;
+
+  /* ========================================
+   * ANIMATION - Scale
+   * ======================================== */
+  --mobile-animation-scale-active: 0.98;
+  --mobile-animation-scale-hover: 1.02;
+
+  /* ========================================
+   * ANIMATION - Opacity
+   * ======================================== */
+  --mobile-animation-opacity-disabled: 0.4;
+  --mobile-animation-opacity-muted: 0.6;
+  --mobile-animation-opacity-hover: 0.8;
+
+  /* ========================================
+   * ACCESSIBILITY - Focus Ring
+   * ======================================== */
+  --mobile-focus-ring-width: 2px;
+  --mobile-focus-ring-offset: 2px;
+  --mobile-focus-ring-color: #0969DA;
+
+  /* ========================================
+   * ACCESSIBILITY - Contrast
+   * ======================================== */
+  --mobile-contrast-minimum: 4.5;
+  --mobile-contrast-enhanced: 7;
+}
+
+/* ========================================
+ * BREAKPOINT UTILITIES
+ * Using CSS Container Queries for better mobile responsiveness
+ * ======================================== */
+@container (min-width: 320px) {
+  .mobile-container-sm {
+    container-type: inline-size;
+  }
+}
+
+@container (min-width: 375px) {
+  .mobile-container-md {
+    container-type: inline-size;
+  }
+}
+
+@container (min-width: 768px) {
+  .mobile-container-lg {
+    container-type: inline-size;
+  }
+}
+
+/* ========================================
+ * MOBILE-SPECIFIC UTILITY CLASSES
+ * ======================================== */
+
+/* Touch-friendly tap highlighting */
+.mobile-tap-highlight {
+  -webkit-tap-highlight-color: rgba(9, 105, 218, 0.1);
+}
+
+/* Prevent text selection on UI elements */
+.mobile-no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Enable smooth scrolling with momentum */
+.mobile-smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Safe area padding for notched devices */
+.mobile-safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.mobile-safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mobile-safe-area-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.mobile-safe-area-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+.mobile-safe-area-inset {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Minimum touch target size */
+.mobile-touch-target {
+  min-width: var(--mobile-touch-target-min);
+  min-height: var(--mobile-touch-target-min);
+}
+
+/* GPU-accelerated animations */
+.mobile-gpu-accelerate {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Active state scaling effect */
+.mobile-active-scale {
+  transition: transform var(--mobile-transition-fast) var(--mobile-transition-ease-out);
+}
+
+.mobile-active-scale:active {
+  transform: scale(var(--mobile-animation-scale-active));
+}
+
+/* Hover state scaling effect */
+.mobile-hover-scale:hover {
+  transform: scale(var(--mobile-animation-scale-hover));
+}
+
+/* Disable animations for reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-active-scale,
+  .mobile-hover-scale,
+  .mobile-smooth-scroll {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Dark mode color scheme preference */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Light mode color scheme preference */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+  }
+}

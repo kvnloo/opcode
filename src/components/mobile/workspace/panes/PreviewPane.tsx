@@ -7,7 +7,7 @@ import {
   ExternalLink,
   Monitor,
   Smartphone,
-  
+
   ChevronRight,
   Upload
 } from 'lucide-react';
@@ -132,13 +132,30 @@ export function PreviewPane({
   };
 
   return (
-    <div className={cn('flex flex-col h-full bg-background', className)}>
+    <div
+      className={cn('flex flex-col h-full', className)}
+      style={{ backgroundColor: 'var(--mobile-bg-primary)' }}
+    >
       {/* Header Section */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+      <div
+        className="flex items-center justify-between px-4 py-3"
+        style={{
+          borderBottom: `1px solid var(--mobile-border-default)`,
+          backgroundColor: 'var(--mobile-bg-card)'
+        }}
+      >
         {/* Publish Button */}
         <button
           onClick={onPublish}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium transition-colors"
+          style={{
+            borderRadius: 'var(--mobile-radius-md)',
+            backgroundColor: 'var(--mobile-accent-primary)',
+            color: 'var(--mobile-text-primary)',
+            transitionDuration: 'var(--mobile-transition-fast)'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-accent-primary-hover)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-accent-primary)'}
         >
           <Upload size={16} />
           Publish
@@ -146,14 +163,22 @@ export function PreviewPane({
 
         {/* Title */}
         <div className="flex items-center gap-2 text-sm font-semibold">
-          <Monitor size={18} className="text-muted-foreground" />
-          <span>Preview</span>
+          <Monitor size={18} style={{ color: 'var(--mobile-text-tertiary)' }} />
+          <span style={{ color: 'var(--mobile-text-primary)' }}>Preview</span>
         </div>
 
         {/* Device Frame Toggle */}
         <button
           onClick={cycleDeviceFrame}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-sm font-medium transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors"
+          style={{
+            borderRadius: 'var(--mobile-radius-md)',
+            backgroundColor: 'var(--mobile-bg-secondary)',
+            color: 'var(--mobile-text-primary)',
+            transitionDuration: 'var(--mobile-transition-fast)'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           aria-label={`Current: ${dimensions.label}. Click to change`}
         >
           {getDeviceIcon()}
@@ -162,17 +187,25 @@ export function PreviewPane({
       </div>
 
       {/* Browser Controls Bar */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-muted/50">
+      <div
+        className="flex items-center gap-2 px-4 py-2"
+        style={{
+          borderBottom: `1px solid var(--mobile-border-default)`,
+          backgroundColor: 'var(--mobile-bg-secondary)'
+        }}
+      >
         {/* Back Button */}
         <button
           onClick={handleBack}
           disabled={!canGoBack}
-          className={cn(
-            'p-2 rounded-lg transition-colors',
-            canGoBack
-              ? 'hover:bg-muted text-foreground'
-              : 'text-muted-foreground/50 cursor-not-allowed'
-          )}
+          className={cn('p-2 transition-colors')}
+          style={{
+            borderRadius: 'var(--mobile-radius-md)',
+            color: canGoBack ? 'var(--mobile-text-primary)' : 'var(--mobile-text-muted)',
+            cursor: canGoBack ? 'pointer' : 'not-allowed',
+            opacity: canGoBack ? 1 : 0.5,
+            transitionDuration: 'var(--mobile-transition-fast)'
+          }}
           aria-label="Go back"
         >
           <ArrowLeft size={18} />
@@ -182,12 +215,14 @@ export function PreviewPane({
         <button
           onClick={handleForward}
           disabled={!canGoForward}
-          className={cn(
-            'p-2 rounded-lg transition-colors',
-            canGoForward
-              ? 'hover:bg-muted text-foreground'
-              : 'text-muted-foreground/50 cursor-not-allowed'
-          )}
+          className={cn('p-2 transition-colors')}
+          style={{
+            borderRadius: 'var(--mobile-radius-md)',
+            color: canGoForward ? 'var(--mobile-text-primary)' : 'var(--mobile-text-muted)',
+            cursor: canGoForward ? 'pointer' : 'not-allowed',
+            opacity: canGoForward ? 1 : 0.5,
+            transitionDuration: 'var(--mobile-transition-fast)'
+          }}
           aria-label="Go forward"
         >
           <ArrowRight size={18} />
@@ -196,25 +231,44 @@ export function PreviewPane({
         {/* Refresh Button */}
         <button
           onClick={handleRefresh}
-          className="p-2 rounded-lg hover:bg-muted transition-colors"
+          className="p-2 transition-colors"
+          style={{
+            borderRadius: 'var(--mobile-radius-md)',
+            color: 'var(--mobile-text-primary)',
+            transitionDuration: 'var(--mobile-transition-fast)'
+          }}
           aria-label="Refresh"
         >
           <RefreshCw size={18} className={cn(isLoading && 'animate-spin')} />
         </button>
 
         {/* URL Input Field */}
-        <div className="flex-1 flex items-center gap-2 bg-background rounded-lg px-3 py-2 border border-border">
+        <div
+          className="flex-1 flex items-center gap-2 px-3 py-2"
+          style={{
+            backgroundColor: 'var(--mobile-bg-primary)',
+            borderRadius: 'var(--mobile-radius-md)',
+            border: `1px solid var(--mobile-border-default)`
+          }}
+        >
           <input
             type="text"
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleNavigate()}
             className="flex-1 bg-transparent text-sm outline-none"
+            style={{ color: 'var(--mobile-text-primary)' }}
             placeholder="/"
           />
           <button
             onClick={handleNavigate}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="transition-colors"
+            style={{
+              color: 'var(--mobile-text-tertiary)',
+              transitionDuration: 'var(--mobile-transition-fast)'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--mobile-text-primary)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--mobile-text-tertiary)'}
             aria-label="Navigate to URL"
           >
             <ChevronRight size={16} />
@@ -224,7 +278,14 @@ export function PreviewPane({
         {/* Open in Browser Link */}
         <button
           onClick={handleOpenExternal}
-          className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          className="p-2 transition-colors"
+          style={{
+            borderRadius: 'var(--mobile-radius-md)',
+            color: 'var(--mobile-text-tertiary)',
+            transitionDuration: 'var(--mobile-transition-fast)'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--mobile-text-primary)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--mobile-text-tertiary)'}
           aria-label="Open in external browser"
         >
           <ExternalLink size={18} />
@@ -232,7 +293,10 @@ export function PreviewPane({
       </div>
 
       {/* Main Preview Content */}
-      <div className="flex-1 overflow-auto bg-muted/30 flex items-center justify-center p-4">
+      <div
+        className="flex-1 overflow-auto flex items-center justify-center p-4"
+        style={{ backgroundColor: 'var(--mobile-bg-secondary)' }}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={deviceFrame}
@@ -260,10 +324,21 @@ export function PreviewPane({
 
             {/* Loading Indicator */}
             {isLoading && (
-              <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-20">
-                <div className="flex items-center gap-2 bg-card px-4 py-2 rounded-lg shadow-lg">
+              <div
+                className="absolute inset-0 flex items-center justify-center z-20"
+                style={{ backgroundColor: 'var(--mobile-bg-overlay)' }}
+              >
+                <div
+                  className="flex items-center gap-2 px-4 py-2 shadow-lg"
+                  style={{
+                    backgroundColor: 'var(--mobile-bg-card)',
+                    borderRadius: 'var(--mobile-radius-md)'
+                  }}
+                >
                   <RefreshCw size={16} className="animate-spin" />
-                  <span className="text-sm">Loading...</span>
+                  <span className="text-sm" style={{ color: 'var(--mobile-text-primary)' }}>
+                    Loading...
+                  </span>
                 </div>
               </div>
             )}

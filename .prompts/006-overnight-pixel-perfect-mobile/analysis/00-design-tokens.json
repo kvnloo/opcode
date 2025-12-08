@@ -1,0 +1,282 @@
+{
+  "colors": {
+    "backgrounds": {
+      "primary": "#0F1419",
+      "secondary": "#1E2835",
+      "tertiary": "#2D3748",
+      "elevated": "#1E2835",
+      "card": "#1E2835",
+      "input": "#1E2835",
+      "overlay": "#0F1419E6",
+      "appPreview": "#1C2A3A",
+      "appCard": "#1E293B"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#E2E8F0",
+      "tertiary": "#6E7681",
+      "muted": "#4A5568",
+      "disabled": "#64748B",
+      "code": "#FFFFFF"
+    },
+    "borders": {
+      "default": "#2D3748",
+      "subtle": "#1E2835",
+      "active": "#0969DA",
+      "focus": "#0969DA",
+      "error": "#DA3633",
+      "card": "#334155"
+    },
+    "accents": {
+      "primary": "#0969DA",
+      "primaryHover": "#0860CA",
+      "success": "#2EA043",
+      "warning": "#D29922",
+      "error": "#DA3633",
+      "info": "#0969DA",
+      "agent": "#8B5CF6",
+      "assistant": "#06B6D4",
+      "publishing": "#2EA043",
+      "gold": "#F59E0B",
+      "goldDark": "#D97706"
+    },
+    "icons": {
+      "default": "#6E7681",
+      "active": "#FFFFFF",
+      "agent": "#8B5CF6",
+      "assistant": "#06B6D4",
+      "publishing": "#2EA043",
+      "database": "#3B82F6",
+      "console": "#F59E0B",
+      "git": "#2EA043",
+      "keyValue": "#8B5CF6",
+      "workflows": "#2EA043",
+      "success": "#2EA043",
+      "error": "#DA3633"
+    },
+    "status": {
+      "success": "#2EA043",
+      "warning": "#D29922",
+      "error": "#DA3633",
+      "info": "#0969DA",
+      "available": "#2EA043",
+      "unavailable": "#DA3633"
+    },
+    "navigation": {
+      "active": "#FFFFFF",
+      "inactive": "#6E7681",
+      "indicator": "#0969DA",
+      "agentIndicator": "#8B5CF6"
+    }
+  },
+  "typography": {
+    "fontFamilies": {
+      "sans": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+      "mono": "'SF Mono', Monaco, Consolas, 'Courier New', monospace"
+    },
+    "fontSizes": {
+      "xs": "11px",
+      "sm": "12px",
+      "base": "13px",
+      "md": "14px",
+      "lg": "15px",
+      "xl": "16px",
+      "2xl": "18px",
+      "3xl": "20px",
+      "4xl": "24px",
+      "5xl": "32px",
+      "6xl": "48px"
+    },
+    "fontWeights": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "lineHeights": {
+      "tight": 1.2,
+      "snug": 1.3,
+      "normal": 1.5,
+      "relaxed": 1.6,
+      "loose": 1.75
+    },
+    "letterSpacing": {
+      "tight": "-0.025em",
+      "normal": "0em",
+      "wide": "0.025em",
+      "wider": "0.05em",
+      "widest": "0.5px"
+    }
+  },
+  "spacing": {
+    "base": 4,
+    "scale": {
+      "0": "0px",
+      "1": "4px",
+      "2": "8px",
+      "3": "12px",
+      "4": "16px",
+      "5": "20px",
+      "6": "24px",
+      "7": "28px",
+      "8": "32px",
+      "10": "40px",
+      "12": "48px",
+      "16": "64px",
+      "20": "80px"
+    }
+  },
+  "borderRadius": {
+    "none": "0px",
+    "sm": "4px",
+    "base": "6px",
+    "md": "8px",
+    "lg": "12px",
+    "xl": "16px",
+    "full": "9999px"
+  },
+  "shadows": {
+    "none": "none",
+    "sm": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+    "base": "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+    "md": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    "lg": "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+    "xl": "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+    "button": "0 4px 12px rgba(245, 158, 11, 0.3)",
+    "buttonActive": "0 2px 8px rgba(245, 158, 11, 0.4)"
+  },
+  "transitions": {
+    "fast": "150ms",
+    "base": "200ms",
+    "slow": "300ms",
+    "easing": {
+      "ease": "ease",
+      "easeIn": "ease-in",
+      "easeOut": "ease-out",
+      "easeInOut": "ease-in-out",
+      "linear": "linear"
+    }
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1100,
+    "fixed": 1200,
+    "modalBackdrop": 1300,
+    "modal": 1400,
+    "popover": 1500,
+    "tooltip": 1600
+  },
+  "breakpoints": {
+    "mobile": "320px",
+    "mobileLarge": "375px",
+    "tablet": "768px",
+    "desktop": "1024px",
+    "wide": "1280px"
+  },
+  "components": {
+    "header": {
+      "height": "56px",
+      "padding": "12px 16px"
+    },
+    "navigation": {
+      "height": "64px",
+      "itemHeight": "48px",
+      "iconSize": "24px",
+      "indicatorHeight": "2px"
+    },
+    "button": {
+      "height": {
+        "sm": "32px",
+        "base": "40px",
+        "md": "44px",
+        "lg": "48px",
+        "xl": "56px"
+      },
+      "padding": {
+        "sm": "6px 12px",
+        "base": "8px 16px",
+        "md": "10px 20px",
+        "lg": "12px 24px"
+      },
+      "borderRadius": "8px"
+    },
+    "input": {
+      "height": {
+        "sm": "32px",
+        "base": "40px",
+        "md": "44px"
+      },
+      "padding": "8px 12px",
+      "borderRadius": "8px",
+      "borderWidth": "1px"
+    },
+    "card": {
+      "padding": "16px",
+      "borderRadius": "12px",
+      "borderWidth": "1px"
+    },
+    "avatar": {
+      "sm": "32px",
+      "base": "48px",
+      "lg": "64px",
+      "xl": "96px"
+    },
+    "icon": {
+      "xs": "16px",
+      "sm": "20px",
+      "base": "24px",
+      "lg": "32px"
+    },
+    "touchTarget": {
+      "minimum": "44px"
+    }
+  },
+  "layout": {
+    "maxWidth": {
+      "sm": "320px",
+      "md": "560px",
+      "lg": "768px",
+      "xl": "1024px"
+    },
+    "padding": {
+      "screen": "16px",
+      "section": "24px"
+    },
+    "gap": {
+      "tight": "4px",
+      "base": "8px",
+      "relaxed": "12px",
+      "loose": "16px"
+    }
+  },
+  "animation": {
+    "duration": {
+      "instant": "100ms",
+      "fast": "150ms",
+      "base": "200ms",
+      "slow": "300ms",
+      "slower": "500ms"
+    },
+    "scale": {
+      "active": "0.98",
+      "hover": "1.02"
+    },
+    "opacity": {
+      "disabled": "0.4",
+      "muted": "0.6",
+      "hover": "0.8"
+    }
+  },
+  "accessibility": {
+    "focusRing": {
+      "width": "2px",
+      "offset": "2px",
+      "color": "#0969DA"
+    },
+    "contrast": {
+      "minimum": "4.5:1",
+      "enhanced": "7:1"
+    }
+  }
+}

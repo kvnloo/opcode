@@ -27,11 +27,11 @@ describe('Navigation Integration Tests', () => {
         </MobileLayout>
       );
 
-      // Verify Apps tab is active
+      // Verify Apps screen header is visible
       expect(screen.getByText('Apps')).toBeInTheDocument();
 
       // Click Create tab
-      const createButton = screen.getByLabelText(/Create/i);
+      const createButton = screen.getByLabelText('Create');
       createButton.click();
 
       expect(handlePaneChange).toHaveBeenCalledWith('create');
@@ -49,7 +49,7 @@ describe('Navigation Integration Tests', () => {
       expect(screen.getByText(/New Project/i)).toBeInTheDocument();
 
       // Click Account tab
-      const accountButton = screen.getByLabelText(/Account/i);
+      const accountButton = screen.getByLabelText('Account');
       accountButton.click();
 
       expect(handlePaneChange).toHaveBeenCalledWith('account');
@@ -80,7 +80,7 @@ describe('Navigation Integration Tests', () => {
       );
 
       // Navigate to Create
-      screen.getByLabelText(/Create/i).click();
+      screen.getByLabelText('Create').click();
       expect(handlePaneChange).toHaveBeenCalledWith('create');
 
       // Simulate remount (as if returning from background)
@@ -93,7 +93,7 @@ describe('Navigation Integration Tests', () => {
       await waitForAnimation();
 
       // Verify Create tab is still active
-      const createTab = screen.getByLabelText(/Create/i).closest('button');
+      const createTab = screen.getByLabelText('Create').closest('button');
       expect(createTab).toHaveClass('text-primary');
     });
 
@@ -105,7 +105,7 @@ describe('Navigation Integration Tests', () => {
       );
 
       // Apps tab should be highlighted
-      const appsTab = screen.getByLabelText(/Apps/i).closest('button');
+      const appsTab = screen.getByLabelText('Apps').closest('button');
       expect(appsTab).toHaveClass('text-primary');
 
       // Switch to Account
@@ -118,14 +118,18 @@ describe('Navigation Integration Tests', () => {
       await waitForAnimation();
 
       // Account tab should be highlighted
-      const accountTab = screen.getByLabelText(/Account/i).closest('button');
+      const accountTab = screen.getByLabelText('Account').closest('button');
       expect(accountTab).toHaveClass('text-primary');
     });
   });
 
   describe('Workspace Navigation', () => {
     it('should navigate from Apps to workspace when project is selected', async () => {
-      const { rerender } = render(<AppsScreen />);
+      const { rerender } = render(
+        <MobileLayout activePane="apps">
+          <AppsScreen />
+        </MobileLayout>
+      );
 
       // Initially on Apps screen
       expect(screen.getByText('Apps')).toBeInTheDocument();
@@ -332,7 +336,7 @@ describe('Navigation Integration Tests', () => {
       );
 
       // Navigate to Create
-      screen.getByLabelText(/Create/i).click();
+      screen.getByLabelText('Create').click();
 
       rerender(
         <MobileLayout activePane="create">
@@ -343,7 +347,7 @@ describe('Navigation Integration Tests', () => {
       await waitForAnimation();
 
       // Navigate back to Apps
-      screen.getByLabelText(/Apps/i).click();
+      screen.getByLabelText('Apps').click();
 
       rerender(
         <MobileLayout activePane="apps">

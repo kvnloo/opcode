@@ -56,6 +56,7 @@ const createWindowMock = () => ({
   })),
   navigator: {
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    platform: 'Win32',
     clipboard: {
       writeText: vi.fn().mockResolvedValue(undefined),
       readText: vi.fn().mockResolvedValue(''),
@@ -93,6 +94,16 @@ vi.mock('@tauri-apps/plugin-os', () => ({
 export const mockTauriOpen = vi.fn();
 vi.mock('@tauri-apps/api/shell', () => ({
   open: mockTauriOpen,
+}));
+
+// Mock @tauri-apps/api/event
+export const mockTauriListen = vi.fn().mockResolvedValue(() => {});
+export const mockTauriEmit = vi.fn().mockResolvedValue(undefined);
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: mockTauriListen,
+  emit: mockTauriEmit,
+  once: vi.fn().mockResolvedValue(() => {}),
+  TauriEvent: {},
 }));
 
 // Complete Framer Motion mock with all motion elements and hooks
@@ -320,3 +331,125 @@ class MockResizeObserver implements ResizeObserver {
 }
 
 global.ResizeObserver = MockResizeObserver as any;
+
+// Mock sessionStore with default test data
+// Note: The AppsScreen transforms path to name using path.split('/').pop()
+// So path '/projects/Test Project' will display as 'Test Project'
+vi.mock('@/stores/sessionStore', () => ({
+  useSessionStore: vi.fn(() => ({
+    projects: [
+      {
+        id: 'test-project-1',
+        path: '/projects/Test Project',
+        name: 'Test Project'
+      },
+      {
+        id: 'test-project-2',
+        path: '/projects/Another Project',
+        name: 'Another Project'
+      }
+    ],
+    sessions: {},
+    currentSessionId: null,
+    currentSession: null,
+    sessionOutputs: {},
+    isLoadingProjects: false,
+    isLoadingSessions: false,
+    isLoadingOutputs: false,
+    error: null,
+    fetchProjects: vi.fn(),
+    fetchProjectSessions: vi.fn(),
+    setCurrentSession: vi.fn(),
+    fetchSessionOutput: vi.fn(),
+    deleteSession: vi.fn(),
+    clearError: vi.fn(),
+    handleSessionUpdate: vi.fn(),
+    handleOutputUpdate: vi.fn()
+  }))
+}));
+
+// Mock workspaceStore with default test data
+vi.mock('@/stores/workspaceStore', () => {
+  const mockStore = {
+    currentProject: null,
+    activePane: 'agent' as const,
+    toolsOverlayOpen: false,
+    agentStatus: 'idle' as const,
+    tasks: [],
+    currentTaskId: null,
+    checkpoints: [],
+    workDurationSeconds: 0,
+    previewUrl: '/',
+    deviceFrame: 'iphone' as const,
+    isPreviewLoading: false,
+    subdomain: '',
+    subdomainAvailable: null,
+    publishStatus: 'unpublished' as const,
+    publishError: null,
+    setProject: vi.fn((project) => { mockStore.currentProject = project; }),
+    setActivePane: vi.fn((pane) => { mockStore.activePane = pane; }),
+    openToolsOverlay: vi.fn(),
+    closeToolsOverlay: vi.fn(),
+    startAgent: vi.fn(),
+    stopAgent: vi.fn(),
+    addTask: vi.fn(),
+    updateTask: vi.fn(),
+    addCheckpoint: vi.fn(),
+    rollbackToCheckpoint: vi.fn(),
+    incrementWorkDuration: vi.fn(),
+    clearTasks: vi.fn(),
+    setPreviewUrl: vi.fn(),
+    setDeviceFrame: vi.fn(),
+    setPreviewLoading: vi.fn(),
+    refreshPreview: vi.fn(),
+    setSubdomain: vi.fn(),
+    checkSubdomainAvailability: vi.fn(),
+    publish: vi.fn(),
+    unpublish: vi.fn(),
+    resetWorkspace: vi.fn(() => {
+      mockStore.currentProject = null;
+      mockStore.activePane = 'agent';
+      mockStore.toolsOverlayOpen = false;
+      mockStore.agentStatus = 'idle';
+      mockStore.tasks = [];
+      mockStore.currentTaskId = null;
+      mockStore.checkpoints = [];
+      mockStore.workDurationSeconds = 0;
+    }),
+  };
+
+  // Create a Zustand-like store object
+  const mockUseWorkspaceStore = Object.assign(
+    vi.fn((selector?: (state: any) => any) =>
+      selector ? selector(mockStore) : mockStore
+    ),
+    {
+      getState: () => mockStore,
+      setState: (updates: any) => {
+        Object.assign(mockStore, typeof updates === 'function' ? updates(mockStore) : updates);
+      },
+      subscribe: vi.fn(),
+      destroy: vi.fn(),
+    }
+  );
+
+  return {
+    useWorkspaceStore: mockUseWorkspaceStore,
+    useCurrentProject: vi.fn(() => mockStore.currentProject),
+    useActivePane: vi.fn(() => mockStore.activePane),
+    useAgentStatus: vi.fn(() => mockStore.agentStatus),
+    useTasks: vi.fn(() => mockStore.tasks),
+    useCurrentTask: vi.fn(() => null),
+    usePreview: vi.fn(() => ({
+      url: mockStore.previewUrl,
+      deviceFrame: mockStore.deviceFrame,
+      isLoading: mockStore.isPreviewLoading
+    })),
+    usePublishing: vi.fn(() => ({
+      subdomain: mockStore.subdomain,
+      subdomainAvailable: mockStore.subdomainAvailable,
+      status: mockStore.publishStatus,
+      error: mockStore.publishError
+    }))
+  };
+});

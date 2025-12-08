@@ -1,11 +1,10 @@
-import { Card } from '@/components/ui/card';
-
 interface User {
   name: string;
   username: string;
   email: string;
   avatar?: string | null;
   isPro?: boolean;
+  bio?: string | null;
 }
 
 interface ProfileCardProps {
@@ -22,27 +21,119 @@ export function ProfileCard({ user }: ProfileCardProps) {
     .slice(0, 2);
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-4">
-        {/* Avatar */}
-        <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xl font-bold">
-          {user.avatar ? (
-            <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
-          ) : (
-            initials
-          )}
-        </div>
-
-        {/* User Info */}
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold truncate">{user.name}</h2>
-          <p className="text-sm text-muted-foreground">@{user.username}</p>
-          <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-          {!user.isPro && (
-            <p className="text-sm text-muted-foreground mt-1">You don't have a bio yet...</p>
-          )}
-        </div>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: 'var(--mobile-space-6)',
+        gap: 'var(--mobile-space-4)',
+      }}
+    >
+      {/* Avatar - Large, centered */}
+      <div
+        style={{
+          width: 'var(--mobile-avatar-xl)',
+          height: 'var(--mobile-avatar-xl)',
+          borderRadius: 'var(--mobile-radius-full)',
+          backgroundColor: 'var(--mobile-accent-agent)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--mobile-text-primary)',
+          fontSize: 'var(--mobile-font-size-4xl)',
+          fontWeight: 'var(--mobile-font-weight-bold)',
+          fontFamily: 'var(--mobile-font-sans)',
+          flexShrink: 0,
+        }}
+      >
+        {user.avatar ? (
+          <img
+            src={user.avatar}
+            alt={user.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: 'var(--mobile-radius-full)',
+              objectFit: 'cover',
+            }}
+          />
+        ) : (
+          initials
+        )}
       </div>
-    </Card>
+
+      {/* User Info - Centered */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 'var(--mobile-space-1)',
+          width: '100%',
+        }}
+      >
+        {/* Name */}
+        <h2
+          style={{
+            fontSize: 'var(--mobile-font-size-3xl)',
+            fontWeight: 'var(--mobile-font-weight-bold)',
+            fontFamily: 'var(--mobile-font-sans)',
+            color: 'var(--mobile-text-primary)',
+            margin: 0,
+            textAlign: 'center',
+          }}
+        >
+          {user.name}
+        </h2>
+
+        {/* Username (handle) */}
+        <p
+          style={{
+            fontSize: 'var(--mobile-font-size-md)',
+            fontFamily: 'var(--mobile-font-sans)',
+            color: 'var(--mobile-text-secondary)',
+            margin: 0,
+            textAlign: 'center',
+          }}
+        >
+          @{user.username}
+        </p>
+
+        {/* Email */}
+        <p
+          style={{
+            fontSize: 'var(--mobile-font-size-sm)',
+            fontFamily: 'var(--mobile-font-sans)',
+            color: 'var(--mobile-text-tertiary)',
+            margin: 0,
+            textAlign: 'center',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: '100%',
+          }}
+        >
+          {user.email}
+        </p>
+
+        {/* Bio placeholder */}
+        {!user.bio && (
+          <p
+            style={{
+              fontSize: 'var(--mobile-font-size-sm)',
+              fontFamily: 'var(--mobile-font-sans)',
+              color: 'var(--mobile-text-muted)',
+              margin: 0,
+              marginTop: 'var(--mobile-space-2)',
+              textAlign: 'center',
+              fontStyle: 'italic',
+            }}
+          >
+            You don't have a bio yet...
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

@@ -3,7 +3,6 @@ import {
   BarChart3,
   User,
   Moon,
-  Users,
   Bell,
   HelpCircle,
   BookOpen,
@@ -21,7 +20,7 @@ interface SettingsItem {
   onClick?: () => void;
   external?: boolean;
   destructive?: boolean;
-  rightContent?: React.ReactNode;
+  hasToggle?: boolean;
 }
 
 interface SettingsSection {
@@ -31,15 +30,6 @@ interface SettingsSection {
 
 export function SettingsList() {
   const sections: SettingsSection[] = [
-    {
-      items: [
-        {
-          icon: <BarChart3 size={20} />,
-          label: 'Usage',
-          onClick: () => console.log('Usage'),
-        },
-      ],
-    },
     {
       title: 'PROFILE',
       items: [
@@ -55,20 +45,18 @@ export function SettingsList() {
       items: [
         {
           icon: <Moon size={20} />,
-          label: 'Theme - Dark',
+          label: 'Theme',
           onClick: () => console.log('Theme'),
-          rightContent: <ChevronRight size={16} className="text-muted-foreground" />,
         },
       ],
     },
     {
-      title: 'TEAMS',
+      title: 'PLAN',
       items: [
         {
-          icon: <Users size={20} />,
-          label: 'Get Teams',
-          external: true,
-          onClick: () => console.log('Teams'),
+          icon: <BarChart3 size={20} />,
+          label: 'Usage',
+          onClick: () => console.log('Usage'),
         },
       ],
     },
@@ -79,6 +67,7 @@ export function SettingsList() {
           icon: <Bell size={20} />,
           label: 'Notifications',
           onClick: () => console.log('Notifications'),
+          hasToggle: true,
         },
       ],
     },
@@ -111,46 +100,130 @@ export function SettingsList() {
           label: 'Manage Account',
           onClick: () => console.log('Manage'),
         },
-        {
-          icon: <LogOut size={20} />,
-          label: 'Log Out',
-          destructive: true,
-          onClick: () => console.log('Logout'),
-        },
       ],
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mobile-space-6)' }}>
       {sections.map((section, sectionIndex) => (
         <div key={sectionIndex}>
           {section.title && (
-            <h3 className="text-xs font-medium text-muted-foreground mb-2 px-1">
+            <h3
+              style={{
+                fontSize: 'var(--mobile-font-size-xs)',
+                fontWeight: 'var(--mobile-font-weight-semibold)',
+                fontFamily: 'var(--mobile-font-sans)',
+                color: 'var(--mobile-text-tertiary)',
+                textTransform: 'uppercase',
+                letterSpacing: 'var(--mobile-letter-spacing-wider)',
+                marginBottom: 'var(--mobile-space-2)',
+                paddingLeft: 'var(--mobile-space-1)',
+              }}
+            >
               {section.title}
             </h3>
           )}
-          <div className="bg-card rounded-lg overflow-hidden divide-y divide-border">
+          <div
+            style={{
+              backgroundColor: 'var(--mobile-bg-card)',
+              borderRadius: 'var(--mobile-card-radius)',
+              overflow: 'hidden',
+            }}
+          >
             {section.items.map((item, itemIndex) => (
               <button
                 key={itemIndex}
                 onClick={item.onClick}
-                className={`w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors ${
-                  item.destructive ? 'text-destructive' : 'text-foreground'
-                }`}
+                className="mobile-tap-highlight mobile-no-select"
+                style={{
+                  width: '100%',
+                  minHeight: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--mobile-space-3)',
+                  padding: '0 var(--mobile-space-4)',
+                  backgroundColor: 'transparent',
+                  borderWidth: '0',
+                  borderBottomWidth: itemIndex < section.items.length - 1 ? '1px' : '0',
+                  borderBottomStyle: 'solid',
+                  borderBottomColor: 'var(--mobile-border-subtle)',
+                  color: item.destructive ? 'var(--mobile-accent-error)' : 'var(--mobile-text-primary)',
+                  fontSize: 'var(--mobile-font-size-md)',
+                  fontFamily: 'var(--mobile-font-sans)',
+                  fontWeight: 'var(--mobile-font-weight-regular)',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'background-color var(--mobile-transition-base) var(--mobile-transition-ease)',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-bg-tertiary)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <span className="text-muted-foreground">{item.icon}</span>
-                <span className="flex-1 text-left">{item.label}</span>
-                {item.external && <ExternalLink size={16} className="text-muted-foreground" />}
-                {item.rightContent}
-                {!item.external && !item.rightContent && !item.destructive && (
-                  <ChevronRight size={16} className="text-muted-foreground" />
+                {/* Icon */}
+                <span style={{ color: item.destructive ? 'var(--mobile-accent-error)' : 'var(--mobile-icon-default)', flexShrink: 0 }}>
+                  {item.icon}
+                </span>
+
+                {/* Label */}
+                <span style={{ flex: 1 }}>
+                  {item.label}
+                </span>
+
+                {/* Right content */}
+                {item.external && (
+                  <ExternalLink size={16} style={{ color: 'var(--mobile-icon-default)', flexShrink: 0 }} />
+                )}
+                {!item.external && !item.hasToggle && !item.destructive && (
+                  <ChevronRight size={16} style={{ color: 'var(--mobile-icon-default)', flexShrink: 0 }} />
                 )}
               </button>
             ))}
           </div>
         </div>
       ))}
+
+      {/* Log Out - Separate at bottom */}
+      <div
+        style={{
+          backgroundColor: 'var(--mobile-bg-card)',
+          borderRadius: 'var(--mobile-card-radius)',
+          overflow: 'hidden',
+        }}
+      >
+        <button
+          onClick={() => console.log('Logout')}
+          className="mobile-tap-highlight mobile-no-select"
+          style={{
+            width: '100%',
+            minHeight: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--mobile-space-3)',
+            padding: '0 var(--mobile-space-4)',
+            backgroundColor: 'transparent',
+            border: 'none',
+            color: 'var(--mobile-accent-error)',
+            fontSize: 'var(--mobile-font-size-md)',
+            fontFamily: 'var(--mobile-font-sans)',
+            fontWeight: 'var(--mobile-font-weight-regular)',
+            textAlign: 'left',
+            cursor: 'pointer',
+            transition: 'background-color var(--mobile-transition-base) var(--mobile-transition-ease)',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--mobile-bg-tertiary)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+        >
+          {/* Icon */}
+          <span style={{ color: 'var(--mobile-accent-error)', flexShrink: 0 }}>
+            <LogOut size={20} />
+          </span>
+
+          {/* Label */}
+          <span style={{ flex: 1 }}>
+            Log Out
+          </span>
+        </button>
+      </div>
     </div>
   );
 }

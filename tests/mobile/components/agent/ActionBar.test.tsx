@@ -37,21 +37,21 @@ describe('ActionBar', () => {
     it('should apply custom className', () => {
       const { container } = render(<ActionBar {...defaultProps} className="custom-class" />);
 
-      const actionBar = container.firstChild;
+      const actionBar = container.firstChild as HTMLElement;
       expect(actionBar?.className).toContain('custom-class');
     });
 
     it('should have safe area bottom padding', () => {
       const { container } = render(<ActionBar {...defaultProps} />);
 
-      const actionBar = container.firstChild;
+      const actionBar = container.firstChild as HTMLElement;
       expect(actionBar?.className).toContain('safe-area-bottom');
     });
 
     it('should have border top styling', () => {
       const { container } = render(<ActionBar {...defaultProps} />);
 
-      const actionBar = container.firstChild;
+      const actionBar = container.firstChild as HTMLElement;
       expect(actionBar?.className).toContain('border-t');
     });
   });

@@ -102,14 +102,185 @@ module.exports = {
         'mobile-xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
       },
 
-      // Dark mode color optimizations
+      // Mobile color system from design tokens
       colors: {
-        'mobile-bg-light': '#ffffff',
-        'mobile-bg-dark': '#0a0a0a',
-        'mobile-surface-light': '#f5f5f5',
-        'mobile-surface-dark': '#1a1a1a',
-        'mobile-border-light': '#e5e5e5',
-        'mobile-border-dark': '#2a2a2a',
+        // Backgrounds
+        'mobile-bg-primary': '#0F1419',
+        'mobile-bg-secondary': '#1E2835',
+        'mobile-bg-tertiary': '#2D3748',
+        'mobile-bg-elevated': '#1E2835',
+        'mobile-bg-card': '#1E2835',
+        'mobile-bg-input': '#1E2835',
+        'mobile-bg-overlay': '#0F1419E6',
+        'mobile-bg-app-preview': '#1C2A3A',
+        'mobile-bg-app-card': '#1E293B',
+
+        // Text
+        'mobile-text-primary': '#FFFFFF',
+        'mobile-text-secondary': '#E2E8F0',
+        'mobile-text-tertiary': '#6E7681',
+        'mobile-text-muted': '#4A5568',
+        'mobile-text-disabled': '#64748B',
+
+        // Borders
+        'mobile-border-default': '#2D3748',
+        'mobile-border-subtle': '#1E2835',
+        'mobile-border-active': '#0969DA',
+        'mobile-border-focus': '#0969DA',
+        'mobile-border-error': '#DA3633',
+        'mobile-border-card': '#334155',
+
+        // Accents
+        'mobile-accent-primary': '#0969DA',
+        'mobile-accent-primary-hover': '#0860CA',
+        'mobile-accent-success': '#2EA043',
+        'mobile-accent-warning': '#D29922',
+        'mobile-accent-error': '#DA3633',
+        'mobile-accent-agent': '#8B5CF6',
+        'mobile-accent-assistant': '#06B6D4',
+        'mobile-accent-gold': '#F59E0B',
+
+        // Icons
+        'mobile-icon-default': '#6E7681',
+        'mobile-icon-active': '#FFFFFF',
+        'mobile-icon-agent': '#8B5CF6',
+        'mobile-icon-assistant': '#06B6D4',
+        'mobile-icon-success': '#2EA043',
+        'mobile-icon-error': '#DA3633',
+
+        // Navigation
+        'mobile-nav-active': '#FFFFFF',
+        'mobile-nav-inactive': '#6E7681',
+        'mobile-nav-indicator': '#0969DA',
+      },
+
+      // Border radius from design tokens
+      borderRadius: {
+        'mobile-sm': '4px',
+        'mobile-base': '6px',
+        'mobile-md': '8px',
+        'mobile-lg': '12px',
+        'mobile-xl': '16px',
+        'mobile-full': '9999px',
+      },
+
+      // Font families from design tokens
+      fontFamily: {
+        'mobile-sans': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'mobile-mono': ['SF Mono', 'Monaco', 'Consolas', 'Courier New', 'monospace'],
+      },
+
+      // Font weights from design tokens
+      fontWeight: {
+        'mobile-regular': '400',
+        'mobile-medium': '500',
+        'mobile-semibold': '600',
+        'mobile-bold': '700',
+      },
+
+      // Letter spacing from design tokens
+      letterSpacing: {
+        'mobile-tight': '-0.025em',
+        'mobile-normal': '0em',
+        'mobile-wide': '0.025em',
+        'mobile-wider': '0.05em',
+        'mobile-widest': '0.5px',
+      },
+
+      // Z-index from design tokens
+      zIndex: {
+        'mobile-base': '0',
+        'mobile-dropdown': '1000',
+        'mobile-sticky': '1100',
+        'mobile-fixed': '1200',
+        'mobile-modal-backdrop': '1300',
+        'mobile-modal': '1400',
+        'mobile-popover': '1500',
+        'mobile-tooltip': '1600',
+      },
+
+      // Width/height for component specifications
+      width: {
+        'mobile-header': '56px',
+        'mobile-nav': '64px',
+        'mobile-nav-item': '48px',
+        'mobile-icon-xs': '16px',
+        'mobile-icon-sm': '20px',
+        'mobile-icon-base': '24px',
+        'mobile-icon-lg': '32px',
+        'mobile-avatar-sm': '32px',
+        'mobile-avatar-base': '48px',
+        'mobile-avatar-lg': '64px',
+        'mobile-avatar-xl': '96px',
+      },
+
+      height: {
+        'mobile-header': '56px',
+        'mobile-nav': '64px',
+        'mobile-nav-item': '48px',
+        'mobile-button-sm': '32px',
+        'mobile-button-base': '40px',
+        'mobile-button-md': '44px',
+        'mobile-button-lg': '48px',
+        'mobile-button-xl': '56px',
+        'mobile-input-sm': '32px',
+        'mobile-input-base': '40px',
+        'mobile-input-md': '44px',
+        'mobile-icon-xs': '16px',
+        'mobile-icon-sm': '20px',
+        'mobile-icon-base': '24px',
+        'mobile-icon-lg': '32px',
+        'mobile-avatar-sm': '32px',
+        'mobile-avatar-base': '48px',
+        'mobile-avatar-lg': '64px',
+        'mobile-avatar-xl': '96px',
+      },
+
+      // Max width from design tokens
+      maxWidth: {
+        'mobile-sm': '320px',
+        'mobile-md': '560px',
+        'mobile-lg': '768px',
+        'mobile-xl': '1024px',
+      },
+
+      // Gap utilities from design tokens
+      gap: {
+        'mobile-tight': '4px',
+        'mobile-base': '8px',
+        'mobile-relaxed': '12px',
+        'mobile-loose': '16px',
+      },
+
+      // Transition duration from design tokens
+      transitionDuration: {
+        'mobile-instant': '100ms',
+        'mobile-fast': '150ms',
+        'mobile-base': '200ms',
+        'mobile-slow': '300ms',
+        'mobile-slower': '500ms',
+      },
+
+      // Transition timing functions from design tokens
+      transitionTimingFunction: {
+        'mobile-ease': 'ease',
+        'mobile-ease-in': 'ease-in',
+        'mobile-ease-out': 'ease-out',
+        'mobile-ease-in-out': 'ease-in-out',
+        'mobile-linear': 'linear',
+      },
+
+      // Scale from design tokens
+      scale: {
+        'mobile-active': '0.98',
+        'mobile-hover': '1.02',
+      },
+
+      // Opacity from design tokens
+      opacity: {
+        'mobile-disabled': '0.4',
+        'mobile-muted': '0.6',
+        'mobile-hover': '0.8',
       },
     },
   },

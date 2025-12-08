@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Mobile Design Tokens */
+@import "./styles/mobile-tokens.css";
+
 /* Tauri Transparent Window with Rounded Corners - Official Approach */
 html, body {
   height: 100%;

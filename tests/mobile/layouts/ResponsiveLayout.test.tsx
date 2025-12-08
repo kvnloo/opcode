@@ -1,6 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ResponsiveLayout } from '@/layouts/ResponsiveLayout';
+
+// Define MobilePane type for the mock
+export type MobilePane = 'agent' | 'create' | 'apps' | 'account';
 
 // Mock the layout components
 vi.mock('@/layouts/MobileLayout', () => ({
@@ -10,6 +13,7 @@ vi.mock('@/layouts/MobileLayout', () => ({
       {onPaneChange && <button onClick={() => onPaneChange('test')}>Change Pane</button>}
     </div>
   ),
+  MobilePane: {} as any, // Export type placeholder
 }));
 
 vi.mock('@/layouts/DesktopLayout', () => ({

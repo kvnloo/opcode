@@ -46,6 +46,7 @@ function BottomNavigation({ active, onChange }: { active: MobilePane; onChange?:
         <button
           key={tab.id}
           onClick={() => onChange?.(tab.id)}
+          aria-label={tab.label}
           className={`flex flex-col items-center p-2 rounded-lg transition-colors min-w-[60px] ${
             active === tab.id
               ? 'text-primary bg-primary/10'

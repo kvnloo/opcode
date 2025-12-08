@@ -8,6 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { AgentPaneContainer } from '@/components/mobile/workspace/panes/AgentPaneContainer';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 // Workspace pane types
 export type WorkspacePane = 'console' | 'agent' | 'deploy' | 'share' | 'preview';
@@ -35,12 +37,14 @@ interface WorkspaceScreenProps {
 }
 
 export function WorkspaceScreen({ projectId, projectName, onBack }: WorkspaceScreenProps) {
-  const [activePane, setActivePane] = useState<WorkspacePane>('console');
+  // Use workspace store for activePane to sync across tests and app
+  const activePane = useWorkspaceStore((state) => state.activePane);
+  const setActivePane = useWorkspaceStore((state) => state.setActivePane);
   const [showToolsOverlay, setShowToolsOverlay] = useState(false);
 
   const handlePaneChange = useCallback((pane: WorkspacePane) => {
     setActivePane(pane);
-  }, []);
+  }, [setActivePane]);
 
   const handleToolsToggle = useCallback(() => {
     setShowToolsOverlay((prev) => !prev);
@@ -184,7 +188,7 @@ function renderPaneContent(pane: WorkspacePane, projectId: string) {
     case 'console':
       return <ConsolePane projectId={projectId} />;
     case 'agent':
-      return <AgentPane projectId={projectId} />;
+      return <AgentPaneContainer projectId={projectId} />;
     case 'deploy':
       return <DeployPane projectId={projectId} />;
     case 'share':
@@ -210,18 +214,8 @@ function ConsolePane({ projectId }: { projectId: string }) {
   );
 }
 
-function AgentPane({ projectId }: { projectId: string }) {
-  return (
-    <div className="h-full flex items-center justify-center p-4">
-      <div className="text-center">
-        <Bot size={48} className="mx-auto mb-4 text-purple-500" />
-        <h2 className="text-xl font-semibold mb-2">Agent</h2>
-        <p className="text-muted-foreground">Project: {projectId}</p>
-        <p className="text-sm text-muted-foreground mt-2">AI agent chat will appear here</p>
-      </div>
-    </div>
-  );
-}
+// Agent pane is imported from separate component file
+// See: src/components/mobile/workspace/panes/AgentPane.tsx
 
 function DeployPane({ projectId }: { projectId: string }) {
   return (

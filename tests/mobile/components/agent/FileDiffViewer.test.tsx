@@ -73,7 +73,8 @@ describe('FileDiffViewer', () => {
     it('should apply custom className', () => {
       const { container } = render(<FileDiffViewer {...defaultProps} className="custom-class" />);
 
-      expect(container.firstChild?.className).toContain('custom-class');
+      const element = container.firstChild as HTMLElement;
+      expect(element?.className).toContain('custom-class');
     });
   });
 
@@ -92,7 +93,7 @@ describe('FileDiffViewer', () => {
 
   describe('View Mode Switching', () => {
     it('should start in unified view mode', () => {
-      const { container } = render(<FileDiffViewer {...defaultProps} />);
+      render(<FileDiffViewer {...defaultProps} />);
 
       const unifiedBtn = screen.getByText('Unified');
       expect(unifiedBtn.className).toContain('bg-background');
@@ -249,9 +250,6 @@ describe('FileDiffViewer', () => {
     });
 
     it('should show diff content in unified mode', () => {
-      render(<FileDiffViewer {...defaultProps} />);
-
-      // Should show line numbers and content
       const { container } = render(<FileDiffViewer {...defaultProps} />);
       expect(container.querySelector('.font-mono')).toBeInTheDocument();
     });
@@ -444,7 +442,7 @@ describe('FileDiffViewer', () => {
     it('should render as fullscreen overlay', () => {
       const { container } = render(<FileDiffViewer {...defaultProps} />);
 
-      const overlay = container.firstChild;
+      const overlay = container.firstChild as HTMLElement;
       expect(overlay?.className).toContain('fixed');
       expect(overlay?.className).toContain('inset-0');
       expect(overlay?.className).toContain('z-50');
@@ -453,7 +451,7 @@ describe('FileDiffViewer', () => {
     it('should have backdrop blur', () => {
       const { container } = render(<FileDiffViewer {...defaultProps} />);
 
-      const overlay = container.firstChild;
+      const overlay = container.firstChild as HTMLElement;
       expect(overlay?.className).toContain('backdrop-blur-sm');
     });
   });

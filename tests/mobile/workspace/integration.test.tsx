@@ -2,66 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { WorkspaceScreen } from '@/screens/mobile/WorkspaceScreen';
 import { AppsScreen } from '@/screens/mobile/AppsScreen';
-
-// Mock workspace store
-const mockWorkspaceStore = {
-  currentProject: null,
-  activePane: 'console',
-  toolsOverlayOpen: false,
-  agentStatus: 'idle',
-  tasks: [],
-  currentTaskId: null,
-  checkpoints: [],
-  workDurationSeconds: 0,
-  previewUrl: '/',
-  deviceFrame: 'iphone',
-  isPreviewLoading: false,
-  subdomain: '',
-  subdomainAvailable: null,
-  publishStatus: 'unpublished',
-  publishError: null,
-  setProject: vi.fn(),
-  setActivePane: vi.fn(),
-  openToolsOverlay: vi.fn(),
-  closeToolsOverlay: vi.fn(),
-  startAgent: vi.fn(),
-  stopAgent: vi.fn(),
-  addTask: vi.fn(),
-  updateTask: vi.fn(),
-  addCheckpoint: vi.fn(),
-  rollbackToCheckpoint: vi.fn(),
-  incrementWorkDuration: vi.fn(),
-  clearTasks: vi.fn(),
-  setPreviewUrl: vi.fn(),
-  setDeviceFrame: vi.fn(),
-  setPreviewLoading: vi.fn(),
-  refreshPreview: vi.fn(),
-  setSubdomain: vi.fn(),
-  checkSubdomainAvailability: vi.fn(),
-  publish: vi.fn(),
-  unpublish: vi.fn(),
-  resetWorkspace: vi.fn(),
-};
-
-vi.mock('@/stores/workspaceStore', () => ({
-  useWorkspaceStore: () => mockWorkspaceStore,
-  useCurrentProject: () => mockWorkspaceStore.currentProject,
-  useActivePane: () => mockWorkspaceStore.activePane,
-  useAgentStatus: () => mockWorkspaceStore.agentStatus,
-  useTasks: () => mockWorkspaceStore.tasks,
-  useCurrentTask: () => null,
-  usePreview: () => ({
-    url: mockWorkspaceStore.previewUrl,
-    deviceFrame: mockWorkspaceStore.deviceFrame,
-    isLoading: mockWorkspaceStore.isPreviewLoading,
-  }),
-  usePublishing: () => ({
-    subdomain: mockWorkspaceStore.subdomain,
-    subdomainAvailable: mockWorkspaceStore.subdomainAvailable,
-    status: mockWorkspaceStore.publishStatus,
-    error: mockWorkspaceStore.publishError,
-  }),
-}));
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 // Mock haptics
 vi.mock('@/hooks/mobile/useHaptics', () => ({
@@ -95,8 +36,11 @@ vi.mock('@/components/mobile/apps/ProjectList', () => ({
 describe('Workspace Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockWorkspaceStore.activePane = 'console';
-    mockWorkspaceStore.toolsOverlayOpen = false;
+    // Reset workspace store to default state
+    const store = useWorkspaceStore.getState();
+    store.resetWorkspace();
+    // Set default activePane to 'console' for tests
+    store.setActivePane('console');
   });
 
   describe('Full navigation flow', () => {
@@ -150,7 +94,7 @@ describe('Workspace Integration Tests', () => {
     it('should switch between all panes', async () => {
       render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
 
-      // Start at console pane
+      // Start at console pane (default set in beforeEach)
       expect(screen.getByText('Terminal output will appear here')).toBeInTheDocument();
 
       // Switch to agent
@@ -158,7 +102,7 @@ describe('Workspace Integration Tests', () => {
       fireEvent.click(agentButton);
 
       await waitFor(() => {
-        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+        expect(useWorkspaceStore.getState().activePane).toBe('agent');
       });
 
       // Switch to deploy
@@ -166,6 +110,7 @@ describe('Workspace Integration Tests', () => {
       fireEvent.click(deployButton);
 
       await waitFor(() => {
+        expect(useWorkspaceStore.getState().activePane).toBe('deploy');
         expect(screen.getByText('Deployment controls will appear here')).toBeInTheDocument();
       });
 
@@ -174,6 +119,7 @@ describe('Workspace Integration Tests', () => {
       fireEvent.click(shareButton);
 
       await waitFor(() => {
+        expect(useWorkspaceStore.getState().activePane).toBe('share');
         expect(screen.getByText('Sharing options will appear here')).toBeInTheDocument();
       });
 
@@ -182,6 +128,7 @@ describe('Workspace Integration Tests', () => {
       fireEvent.click(previewButton);
 
       await waitFor(() => {
+        expect(useWorkspaceStore.getState().activePane).toBe('preview');
         expect(screen.getByText('Live preview will appear here')).toBeInTheDocument();
       });
     });
@@ -194,7 +141,7 @@ describe('Workspace Integration Tests', () => {
       fireEvent.click(agentButton);
 
       await waitFor(() => {
-        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+        expect(useWorkspaceStore.getState().activePane).toBe('agent');
       });
 
       // Open tools overlay
@@ -214,10 +161,12 @@ describe('Workspace Integration Tests', () => {
       const closeButton = screen.getByRole('button', { name: /close/i });
       fireEvent.click(closeButton);
 
-      // Should still be on agent pane
       await waitFor(() => {
-        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+        expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
       });
+
+      // Should still be on agent pane
+      expect(useWorkspaceStore.getState().activePane).toBe('agent');
     });
   });
 
@@ -279,11 +228,14 @@ describe('Workspace Integration Tests', () => {
       });
 
       await waitFor(() => {
-        const overlay = screen.getByText('Project Tools').closest('.absolute');
-        if (overlay) {
-          fireEvent.click(overlay);
-        }
+        expect(screen.getByText('Project Tools')).toBeInTheDocument();
       });
+
+      // Click backdrop (overlay container)
+      const overlay = screen.getByText('Project Tools').closest('.absolute');
+      if (overlay) {
+        fireEvent.click(overlay);
+      }
 
       await waitFor(() => {
         expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
@@ -297,7 +249,7 @@ describe('Workspace Integration Tests', () => {
 
       const panes = [
         { label: 'Console', content: 'Terminal output will appear here' },
-        { label: 'Agent', content: 'AI agent chat will appear here' },
+        { label: 'Agent', content: /AI agent/i },
         { label: 'Deploy', content: 'Deployment controls will appear here' },
         { label: 'Share', content: 'Sharing options will appear here' },
         { label: 'Preview', content: 'Live preview will appear here' },
@@ -308,7 +260,12 @@ describe('Workspace Integration Tests', () => {
         fireEvent.click(button);
 
         await waitFor(() => {
-          expect(screen.getByText(pane.content)).toBeInTheDocument();
+          expect(useWorkspaceStore.getState().activePane).toBe(pane.label.toLowerCase());
+          if (typeof pane.content === 'string') {
+            expect(screen.getByText(pane.content)).toBeInTheDocument();
+          } else {
+            expect(screen.getByText(pane.content)).toBeInTheDocument();
+          }
         });
       }
     });
@@ -364,6 +321,7 @@ describe('Workspace Integration Tests', () => {
 
       await waitFor(() => {
         expect(agentButton).toHaveClass('text-primary');
+        expect(useWorkspaceStore.getState().activePane).toBe('agent');
       });
     });
 
@@ -374,7 +332,9 @@ describe('Workspace Integration Tests', () => {
       fireEvent.click(agentButton);
 
       await waitFor(() => {
-        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+        expect(useWorkspaceStore.getState().activePane).toBe('agent');
+        // Agent pane now shows AgentPaneContainer which has different content
+        expect(screen.queryByText('Terminal output will appear here')).not.toBeInTheDocument();
       });
     });
   });
@@ -393,7 +353,7 @@ describe('Workspace Integration Tests', () => {
       fireEvent.click(agentButton);
 
       await waitFor(() => {
-        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+        expect(useWorkspaceStore.getState().activePane).toBe('agent');
       });
 
       // 3. Open tools overlay
@@ -422,6 +382,7 @@ describe('Workspace Integration Tests', () => {
       fireEvent.click(previewButton);
 
       await waitFor(() => {
+        expect(useWorkspaceStore.getState().activePane).toBe('preview');
         expect(screen.getByText('Live preview will appear here')).toBeInTheDocument();
       });
 
@@ -459,6 +420,7 @@ describe('Workspace Integration Tests', () => {
 
       // Should end on console pane
       await waitFor(() => {
+        expect(useWorkspaceStore.getState().activePane).toBe('console');
         expect(screen.getByText('Terminal output will appear here')).toBeInTheDocument();
       });
     });

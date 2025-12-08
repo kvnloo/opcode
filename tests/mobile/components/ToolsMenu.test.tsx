@@ -20,13 +20,13 @@ describe('ToolsMenu', () => {
     it('should render search section header', () => {
       render(<ToolsMenu />);
 
-      expect(screen.getByText('Search')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Search', level: 3 })).toBeInTheDocument();
     });
 
     it('should render tools section header', () => {
       render(<ToolsMenu />);
 
-      expect(screen.getByText('Tools')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Tools', level: 3 })).toBeInTheDocument();
     });
 
     it('should render all default tools', () => {
@@ -42,13 +42,13 @@ describe('ToolsMenu', () => {
     it('should render close button when onClose provided', () => {
       render(<ToolsMenu onClose={mockOnClose} />);
 
-      expect(screen.getByText('Close')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     });
 
     it('should not render close button when onClose not provided', () => {
       render(<ToolsMenu />);
 
-      expect(screen.queryByText('Close')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
     });
   });
 
@@ -101,8 +101,11 @@ describe('ToolsMenu', () => {
       expect(searchInput.value).toBe('agent');
       expect(screen.queryByText('Database')).not.toBeInTheDocument();
 
-      const clearButton = screen.getByRole('button', { name: '' }); // X button has no name
-      fireEvent.click(clearButton);
+      // X button is a button element with X icon, no accessible name
+      const clearButtons = screen.getAllByRole('button');
+      const clearButton = clearButtons.find(btn => btn.querySelector('svg'));
+      expect(clearButton).toBeDefined();
+      fireEvent.click(clearButton!);
 
       expect(searchInput.value).toBe('');
       expect(screen.getByText('Database')).toBeInTheDocument();
@@ -113,13 +116,17 @@ describe('ToolsMenu', () => {
 
       const searchInput = screen.getByPlaceholderText('Search for tools and files');
 
-      // No clear button initially
-      expect(screen.queryByRole('button', { name: '' })).not.toBeInTheDocument();
+      // No clear button initially (only the input, no X button)
+      const initialButtons = screen.queryAllByRole('button');
+      const hasClearButton = initialButtons.some(btn => btn.querySelector('svg'));
+      expect(hasClearButton).toBe(false);
 
       fireEvent.change(searchInput, { target: { value: 'test' } });
 
       // Clear button appears
-      expect(screen.getByRole('button', { name: '' })).toBeInTheDocument();
+      const buttonsWithText = screen.getAllByRole('button');
+      const clearButtonExists = buttonsWithText.some(btn => btn.querySelector('svg'));
+      expect(clearButtonExists).toBe(true);
     });
   });
 
@@ -167,7 +174,7 @@ describe('ToolsMenu', () => {
     it('should call onClose when close button clicked', () => {
       render(<ToolsMenu onClose={mockOnClose} />);
 
-      const closeButton = screen.getByText('Close');
+      const closeButton = screen.getByRole('button', { name: 'Close' });
       fireEvent.click(closeButton);
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -178,8 +185,8 @@ describe('ToolsMenu', () => {
     it('should separate search and tools categories', () => {
       render(<ToolsMenu />);
 
-      const searchSection = screen.getByText('Search').closest('div');
-      const toolsSection = screen.getByText('Tools').closest('div');
+      const searchSection = screen.getByRole('heading', { name: 'Search', level: 3 });
+      const toolsSection = screen.getByRole('heading', { name: 'Tools', level: 3 });
 
       expect(searchSection).toBeInTheDocument();
       expect(toolsSection).toBeInTheDocument();
@@ -188,7 +195,7 @@ describe('ToolsMenu', () => {
     it('should show search tools in search section', () => {
       render(<ToolsMenu />);
 
-      expect(screen.getByText('Search')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Search', level: 3 })).toBeInTheDocument();
       expect(screen.getByText('Files')).toBeInTheDocument();
     });
 
@@ -199,7 +206,8 @@ describe('ToolsMenu', () => {
       fireEvent.change(searchInput, { target: { value: 'search' } });
 
       // Should show "Search" tool in search category
-      const searchSection = screen.getByText('Search').closest('div');
+      const searchHeading = screen.getByRole('heading', { name: 'Search', level: 3 });
+      const searchSection = searchHeading.closest('div');
       expect(within(searchSection as HTMLElement).getByText('Search')).toBeInTheDocument();
     });
   });
@@ -242,10 +250,13 @@ describe('ToolsMenu', () => {
     it('should maintain focus management', () => {
       render(<ToolsMenu />);
 
-      const searchInput = screen.getByPlaceholderText('Search for tools and files');
+      const searchInput = screen.getByPlaceholderText('Search for tools and files') as HTMLInputElement;
+
+      // In JSDOM, we need to explicitly set focus
       searchInput.focus();
 
-      expect(searchInput).toHaveFocus();
+      // Check that focus was applied (JSDOM compatible check)
+      expect(document.activeElement).toBe(searchInput);
     });
   });
 

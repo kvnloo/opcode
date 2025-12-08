@@ -55,7 +55,7 @@ describe('TaskProgress', () => {
         <TaskProgress tasks={mockTasks} currentTaskIndex={0} className="custom-class" />
       );
 
-      const progressContainer = container.firstChild;
+      const progressContainer = container.firstChild as HTMLElement;
       expect(progressContainer?.className).toContain('custom-class');
     });
 
@@ -79,31 +79,35 @@ describe('TaskProgress', () => {
 
   describe('Task Status Icons', () => {
     it('should show checkmark icon for completed tasks', () => {
-      render(<TaskProgress tasks={mockTasks} currentTaskIndex={0} />);
+      const { container } = render(<TaskProgress tasks={mockTasks} currentTaskIndex={0} />);
 
       const completedTask = screen.getByText('Analyze requirements').closest('div');
-      expect(completedTask?.querySelector('.text-green-500')).toBeInTheDocument();
+      const icon = completedTask?.querySelector('.text-green-500');
+      expect(icon).toBeInTheDocument();
     });
 
     it('should show spinner icon for in-progress tasks', () => {
-      render(<TaskProgress tasks={mockTasks} currentTaskIndex={1} />);
+      const { container } = render(<TaskProgress tasks={mockTasks} currentTaskIndex={1} />);
 
       const inProgressTask = screen.getByText('Design architecture').closest('div');
-      expect(inProgressTask?.querySelector('.animate-spin')).toBeInTheDocument();
+      const spinner = inProgressTask?.querySelector('.animate-spin');
+      expect(spinner).toBeInTheDocument();
     });
 
     it('should show circle icon for pending tasks', () => {
-      render(<TaskProgress tasks={mockTasks} currentTaskIndex={2} />);
+      const { container } = render(<TaskProgress tasks={mockTasks} currentTaskIndex={2} />);
 
       const pendingTask = screen.getByText('Implement features').closest('div');
-      expect(pendingTask?.querySelector('.text-muted-foreground')).toBeInTheDocument();
+      const icon = pendingTask?.querySelector('.text-muted-foreground');
+      expect(icon).toBeInTheDocument();
     });
 
     it('should show alert icon for error tasks', () => {
-      render(<TaskProgress tasks={mockTasks} currentTaskIndex={3} />);
+      const { container } = render(<TaskProgress tasks={mockTasks} currentTaskIndex={3} />);
 
       const errorTask = screen.getByText('Write tests').closest('div');
-      expect(errorTask?.querySelector('.text-red-500')).toBeInTheDocument();
+      const icon = errorTask?.querySelector('.text-red-500');
+      expect(icon).toBeInTheDocument();
     });
   });
 
@@ -124,11 +128,14 @@ describe('TaskProgress', () => {
     });
 
     it('should not display duration for pending tasks', () => {
-      const { container } = render(<TaskProgress tasks={mockTasks} currentTaskIndex={2} />);
+      render(<TaskProgress tasks={mockTasks} currentTaskIndex={2} />);
 
       const pendingTask = screen.getByText('Implement features').closest('div');
-      // Should not have timing info
-      expect(pendingTask?.querySelector('.text-muted-foreground')?.textContent).not.toMatch(/\d+s/);
+      const timingElement = pendingTask?.querySelector('.text-muted-foreground');
+      // Timing element should not exist or not contain seconds pattern
+      if (timingElement) {
+        expect(timingElement.textContent).not.toMatch(/\d+s/);
+      }
     });
   });
 
@@ -178,7 +185,8 @@ describe('TaskProgress', () => {
 
       // Task with details should have chevron
       const taskWithDetails = screen.getByText('Analyze requirements').closest('div');
-      expect(taskWithDetails?.querySelector('.text-muted-foreground')).toBeInTheDocument();
+      const chevron = taskWithDetails?.querySelector('.text-muted-foreground');
+      expect(chevron).toBeInTheDocument();
     });
 
     it('should not expand tasks without details', async () => {
@@ -284,7 +292,8 @@ describe('TaskProgress', () => {
       await tap(errorTask);
 
       await waitFor(() => {
-        const errorContainer = screen.getByText('Error').closest('div');
+        const errorLabel = screen.getByText('Error');
+        const errorContainer = errorLabel.closest('div');
         expect(errorContainer?.className).toContain('bg-red-50');
       });
     });

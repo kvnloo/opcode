@@ -108,19 +108,47 @@ export function ConsolePane({ projectId, projectPath, onOutput }: ConsolePanePro
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#1e1e1e]">
+    <div
+      className="h-full flex flex-col"
+      style={{ backgroundColor: 'var(--mobile-bg-primary)' }}
+    >
       {/* Terminal Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[#333] bg-[#252525]">
+      <div
+        className="flex items-center justify-between px-4 py-2"
+        style={{
+          borderBottom: `1px solid var(--mobile-border-default)`,
+          backgroundColor: 'var(--mobile-bg-card)'
+        }}
+      >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-[#d4d4d4]">Console</span>
-          <span className="text-xs text-[#888]">•</span>
-          <span className="text-xs text-[#888] truncate max-w-[200px]">
+          <span
+            className="text-sm font-medium"
+            style={{ color: 'var(--mobile-text-primary)' }}
+          >
+            Console
+          </span>
+          <span
+            className="text-xs"
+            style={{ color: 'var(--mobile-text-tertiary)' }}
+          >
+            •
+          </span>
+          <span
+            className="text-xs truncate max-w-[200px]"
+            style={{ color: 'var(--mobile-text-tertiary)' }}
+          >
             {projectPath}
           </span>
         </div>
         <button
           onClick={handleClear}
-          className="text-xs text-[#888] hover:text-[#d4d4d4] transition-colors px-2 py-1"
+          className="text-xs px-2 py-1 transition-colors"
+          style={{
+            color: 'var(--mobile-text-tertiary)',
+            transitionDuration: 'var(--mobile-transition-fast)'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--mobile-text-primary)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--mobile-text-tertiary)'}
         >
           Clear
         </button>
@@ -128,29 +156,38 @@ export function ConsolePane({ projectId, projectPath, onOutput }: ConsolePanePro
 
       {/* Terminal Output */}
       <ScrollArea className="flex-1" ref={scrollRef}>
-        <div className="p-4 font-mono text-sm">
+        <div
+          className="p-4 text-sm"
+          style={{ fontFamily: 'var(--mobile-font-mono)' }}
+        >
           {lines.map((line) => (
             <div
               key={line.id}
-              className={`whitespace-pre-wrap break-all ${
-                line.type === 'input'
-                  ? 'text-[#4fc3f7]'
+              className="whitespace-pre-wrap break-all"
+              style={{
+                color: line.type === 'input'
+                  ? 'var(--mobile-accent-info)'
                   : line.type === 'error'
-                    ? 'text-[#f44336]'
-                    : 'text-[#d4d4d4]'
-              }`}
+                    ? 'var(--mobile-accent-error)'
+                    : 'var(--mobile-text-primary)'
+              }}
             >
               {line.content}
             </div>
           ))}
           {isExecuting && (
-            <div className="text-[#888] animate-pulse">Executing...</div>
+            <div
+              className="animate-pulse"
+              style={{ color: 'var(--mobile-text-tertiary)' }}
+            >
+              Executing...
+            </div>
           )}
         </div>
       </ScrollArea>
 
       {/* Input Section */}
-      <div className="border-t border-[#333]">
+      <div style={{ borderTop: `1px solid var(--mobile-border-default)` }}>
         {/* Quick Commands */}
         <QuickCommands onSelect={handleQuickCommand} />
 

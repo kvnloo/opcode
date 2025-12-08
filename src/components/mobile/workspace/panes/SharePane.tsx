@@ -107,30 +107,72 @@ export function SharePane({
   }, [projectUrl, projectName, onShare]);
 
   return (
-    <div className="h-full overflow-y-auto bg-background">
+    <div
+      className="h-full overflow-y-auto"
+      style={{ backgroundColor: 'var(--mobile-bg-primary)' }}
+    >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b px-4 py-3">
+      <div
+        className="sticky top-0 z-10 backdrop-blur-sm px-4 py-3"
+        style={{
+          backgroundColor: 'var(--mobile-bg-primary)',
+          borderBottom: `1px solid var(--mobile-border-default)`
+        }}
+      >
         <div className="flex items-center gap-2">
-          <Share2 className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-semibold">Share</h2>
+          <Share2 className="w-5 h-5" style={{ color: 'var(--mobile-accent-primary)' }} />
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: 'var(--mobile-text-primary)' }}
+          >
+            Share
+          </h2>
         </div>
       </div>
 
       <div className="p-4 space-y-6">
         {/* Share Link Section */}
         <section>
-          <h3 className="text-sm font-semibold mb-3">Share your app</h3>
+          <h3
+            className="text-sm font-semibold mb-3"
+            style={{ color: 'var(--mobile-text-primary)' }}
+          >
+            Share your app
+          </h3>
 
           {/* Link Preview Card */}
-          <div className="bg-muted rounded-lg p-3 mb-3">
-            <p className="text-xs text-muted-foreground mb-1">Project URL</p>
-            <p className="text-sm font-mono truncate">{projectUrl}</p>
+          <div
+            className="p-3 mb-3"
+            style={{
+              backgroundColor: 'var(--mobile-bg-card)',
+              borderRadius: 'var(--mobile-radius-md)'
+            }}
+          >
+            <p
+              className="text-xs mb-1"
+              style={{ color: 'var(--mobile-text-tertiary)' }}
+            >
+              Project URL
+            </p>
+            <p
+              className="text-sm truncate"
+              style={{
+                fontFamily: 'var(--mobile-font-mono)',
+                color: 'var(--mobile-text-primary)'
+              }}
+            >
+              {projectUrl}
+            </p>
           </div>
 
           <div className="flex gap-2">
             <HapticButton
               onClick={handleCopyLink}
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="flex-1"
+              style={{
+                backgroundColor: 'var(--mobile-accent-primary)',
+                color: 'var(--mobile-text-primary)'
+              }}
               hapticType="light"
             >
               {copiedState.link ? (
@@ -149,7 +191,11 @@ export function SharePane({
             {typeof navigator !== 'undefined' && 'share' in navigator && (
               <HapticButton
                 onClick={handleSystemShare}
-                className="flex-1 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                className="flex-1"
+                style={{
+                  backgroundColor: 'var(--mobile-bg-secondary)',
+                  color: 'var(--mobile-text-primary)'
+                }}
                 hapticType="light"
               >
                 <Share2 className="w-4 h-4 mr-2" />
@@ -161,27 +207,48 @@ export function SharePane({
 
         {/* Collaboration Section */}
         <section>
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <h3
+            className="text-sm font-semibold mb-3 flex items-center gap-2"
+            style={{ color: 'var(--mobile-text-primary)' }}
+          >
             <Users className="w-4 h-4" />
             Invite collaborators
           </h3>
 
           <div className="space-y-3">
             {/* Invite Form */}
-            <div className="bg-muted rounded-lg p-3 space-y-2">
+            <div
+              className="p-3 space-y-2"
+              style={{
+                backgroundColor: 'var(--mobile-bg-card)',
+                borderRadius: 'var(--mobile-radius-md)'
+              }}
+            >
               <input
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="email@example.com"
-                className="w-full px-3 py-2 bg-background rounded-md text-sm border focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                style={{
+                  backgroundColor: 'var(--mobile-bg-primary)',
+                  borderRadius: 'var(--mobile-radius-base)',
+                  border: `1px solid var(--mobile-border-default)`,
+                  color: 'var(--mobile-text-primary)'
+                }}
               />
 
               <div className="flex gap-2">
                 <select
                   value={invitePermission}
                   onChange={(e) => setInvitePermission(e.target.value as 'view' | 'edit' | 'admin')}
-                  className="flex-1 px-3 py-2 bg-background rounded-md text-sm border focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="flex-1 px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: 'var(--mobile-bg-primary)',
+                    borderRadius: 'var(--mobile-radius-base)',
+                    border: `1px solid var(--mobile-border-default)`,
+                    color: 'var(--mobile-text-primary)'
+                  }}
                 >
                   <option value="view">View Only</option>
                   <option value="edit">Can Edit</option>
@@ -191,7 +258,11 @@ export function SharePane({
                 <HapticButton
                   onClick={handleInvite}
                   disabled={!inviteEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  style={{
+                    backgroundColor: 'var(--mobile-accent-primary)',
+                    color: 'var(--mobile-text-primary)',
+                    opacity: (!inviteEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) ? 0.5 : 1
+                  }}
                   hapticType="medium"
                 >
                   <Send className="w-4 h-4" />
@@ -202,26 +273,45 @@ export function SharePane({
             {/* Current Collaborators */}
             {collaborators.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">
+                <p
+                  className="text-xs"
+                  style={{ color: 'var(--mobile-text-tertiary)' }}
+                >
                   {collaborators.length} {collaborators.length === 1 ? 'collaborator' : 'collaborators'}
                 </p>
                 {collaborators.map((collab) => (
                   <div
                     key={collab.id}
-                    className="flex items-center gap-3 p-2 bg-muted rounded-lg"
+                    className="flex items-center gap-3 p-2"
+                    style={{
+                      backgroundColor: 'var(--mobile-bg-card)',
+                      borderRadius: 'var(--mobile-radius-md)'
+                    }}
                   >
                     {/* Avatar */}
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold">
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
+                      style={{
+                        backgroundColor: 'rgba(9, 105, 218, 0.2)',
+                        color: 'var(--mobile-accent-primary)'
+                      }}
+                    >
                       {collab.name?.[0] || collab.email[0].toUpperCase()}
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
+                      <p
+                        className="text-sm font-medium truncate"
+                        style={{ color: 'var(--mobile-text-primary)' }}
+                      >
                         {collab.name || collab.email}
                       </p>
                       {collab.name && (
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p
+                          className="text-xs truncate"
+                          style={{ color: 'var(--mobile-text-tertiary)' }}
+                        >
                           {collab.email}
                         </p>
                       )}
@@ -231,7 +321,13 @@ export function SharePane({
                     <select
                       value={collab.permission}
                       onChange={(e) => onUpdatePermission?.(collab.id, e.target.value as any)}
-                      className="px-2 py-1 bg-background rounded text-xs border"
+                      className="px-2 py-1 text-xs"
+                      style={{
+                        backgroundColor: 'var(--mobile-bg-primary)',
+                        borderRadius: 'var(--mobile-radius-base)',
+                        border: `1px solid var(--mobile-border-default)`,
+                        color: 'var(--mobile-text-primary)'
+                      }}
                       disabled={!onUpdatePermission}
                     >
                       <option value="view">View</option>
@@ -243,10 +339,14 @@ export function SharePane({
                     {onRemoveCollaborator && (
                       <button
                         onClick={() => onRemoveCollaborator(collab.id)}
-                        className="p-1 hover:bg-destructive/10 rounded"
+                        className="p-1 rounded"
+                        style={{
+                          backgroundColor: 'transparent',
+                          color: 'var(--mobile-accent-error)'
+                        }}
                         aria-label="Remove collaborator"
                       >
-                        <X className="w-4 h-4 text-destructive" />
+                        <X className="w-4 h-4" />
                       </button>
                     )}
                   </div>
@@ -258,7 +358,10 @@ export function SharePane({
 
         {/* Embed Options */}
         <section>
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <h3
+            className="text-sm font-semibold mb-3 flex items-center gap-2"
+            style={{ color: 'var(--mobile-text-primary)' }}
+          >
             <Code className="w-4 h-4" />
             Embed
           </h3>
@@ -270,12 +373,17 @@ export function SharePane({
                 <button
                   key={size}
                   onClick={() => setEmbedSize(size)}
-                  className={cn(
-                    'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                    embedSize === size
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  )}
+                  className={cn('flex-1 px-3 py-2 text-sm font-medium transition-colors')}
+                  style={{
+                    borderRadius: 'var(--mobile-radius-md)',
+                    backgroundColor: embedSize === size
+                      ? 'var(--mobile-accent-primary)'
+                      : 'var(--mobile-bg-card)',
+                    color: embedSize === size
+                      ? 'var(--mobile-text-primary)'
+                      : 'var(--mobile-text-tertiary)',
+                    transitionDuration: 'var(--mobile-transition-fast)'
+                  }}
                 >
                   {size.charAt(0).toUpperCase() + size.slice(1)}
                 </button>
@@ -283,18 +391,37 @@ export function SharePane({
             </div>
 
             {/* Embed Code Preview */}
-            <div className="bg-muted rounded-lg p-3">
-              <p className="text-xs text-muted-foreground mb-2">
+            <div
+              className="p-3"
+              style={{
+                backgroundColor: 'var(--mobile-bg-card)',
+                borderRadius: 'var(--mobile-radius-md)'
+              }}
+            >
+              <p
+                className="text-xs mb-2"
+                style={{ color: 'var(--mobile-text-tertiary)' }}
+              >
                 {EMBED_SIZES[embedSize].width} × {EMBED_SIZES[embedSize].height}
               </p>
-              <pre className="text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all">
+              <pre
+                className="text-xs overflow-x-auto whitespace-pre-wrap break-all"
+                style={{
+                  fontFamily: 'var(--mobile-font-mono)',
+                  color: 'var(--mobile-text-primary)'
+                }}
+              >
                 {embedCode}
               </pre>
             </div>
 
             <HapticButton
               onClick={handleCopyEmbed}
-              className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
+              className="w-full"
+              style={{
+                backgroundColor: 'var(--mobile-bg-secondary)',
+                color: 'var(--mobile-text-primary)'
+              }}
               hapticType="light"
             >
               {copiedState.embed ? (
@@ -314,7 +441,12 @@ export function SharePane({
 
         {/* Social Sharing */}
         <section>
-          <h3 className="text-sm font-semibold mb-3">Share on social</h3>
+          <h3
+            className="text-sm font-semibold mb-3"
+            style={{ color: 'var(--mobile-text-primary)' }}
+          >
+            Share on social
+          </h3>
 
           <div className="grid grid-cols-2 gap-2">
             <HapticButton
@@ -341,7 +473,10 @@ export function SharePane({
 
             <HapticButton
               onClick={handleCopyLink}
-              className="bg-muted text-foreground hover:bg-muted/80"
+              style={{
+                backgroundColor: 'var(--mobile-bg-card)',
+                color: 'var(--mobile-text-primary)'
+              }}
               hapticType="light"
             >
               <Copy className="w-4 h-4 mr-2" />
@@ -350,7 +485,10 @@ export function SharePane({
 
             <HapticButton
               onClick={() => setShowQrCode(!showQrCode)}
-              className="bg-muted text-foreground hover:bg-muted/80"
+              style={{
+                backgroundColor: 'var(--mobile-bg-card)',
+                color: 'var(--mobile-text-primary)'
+              }}
               hapticType="light"
             >
               <QrCode className="w-4 h-4 mr-2" />
@@ -360,13 +498,31 @@ export function SharePane({
 
           {/* QR Code Display */}
           {showQrCode && (
-            <div className="mt-4 p-4 bg-white rounded-lg text-center">
-              <div className="inline-block p-4 bg-gray-100 rounded-lg">
-                <div className="w-48 h-48 flex items-center justify-center text-muted-foreground">
+            <div
+              className="mt-4 p-4 text-center"
+              style={{
+                backgroundColor: 'white',
+                borderRadius: 'var(--mobile-radius-md)'
+              }}
+            >
+              <div
+                className="inline-block p-4"
+                style={{
+                  backgroundColor: '#f3f4f6',
+                  borderRadius: 'var(--mobile-radius-md)'
+                }}
+              >
+                <div
+                  className="w-48 h-48 flex items-center justify-center"
+                  style={{ color: 'var(--mobile-text-tertiary)' }}
+                >
                   <QrCode className="w-full h-full" strokeWidth={0.5} />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p
+                className="text-xs mt-2"
+                style={{ color: 'var(--mobile-text-tertiary)' }}
+              >
                 Scan to open project
               </p>
             </div>
