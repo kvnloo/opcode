@@ -1,0 +1,280 @@
+name: Mobile Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "# Release ${{ steps.get_version.outputs.version }}" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## Changes" >> CHANGELOG.md
+          git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          cat CHANGELOG.md
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ steps.get_version.outputs.version }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-android-release:
+    name: Build Android Release
+    runs-on: ubuntu-latest
+    needs: create-release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          cache-on-failure: true
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+        if: secrets.ANDROID_KEYSTORE_BASE64 != ''
+
+      - name: Build signed APK and AAB
+        run: tauri android build --apk --aab --release
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          KEYSTORE_PATH: ${{ github.workspace }}/keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Rename APK
+        run: |
+          find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -exec mv {} opcode-v${{ needs.create-release.outputs.version }}-android.apk \;
+
+      - name: Rename AAB
+        run: |
+          find src-tauri/gen/android/app/build/outputs/bundle -name "*.aab" -exec mv {} opcode-v${{ needs.create-release.outputs.version }}-android.aab \;
+
+      - name: Upload APK to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: opcode-v${{ needs.create-release.outputs.version }}-android.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload AAB to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: opcode-v${{ needs.create-release.outputs.version }}-android.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup keystore
+        if: always()
+        run: rm -f keystore.jks
+
+  build-ios-release:
+    name: Build iOS Release
+    runs-on: macos-14
+    needs: create-release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          cache-on-failure: true
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
+      - name: Install CocoaPods
+        run: sudo gem install cocoapods
+
+      - name: Import signing certificate
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+        if: secrets.IOS_CERTIFICATE_BASE64 != ''
+
+      - name: Install provisioning profile
+        run: |
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 -d > profile.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+        if: secrets.IOS_PROVISIONING_PROFILE_BASE64 != ''
+
+      - name: Build iOS IPA
+        run: tauri ios build --export-method app-store
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
+          FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+
+      - name: Rename IPA
+        run: |
+          find src-tauri/gen/apple/build -name "*.ipa" -exec mv {} opcode-v${{ needs.create-release.outputs.version }}-ios.ipa \;
+
+      - name: Upload IPA to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: opcode-v${{ needs.create-release.outputs.version }}-ios.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to TestFlight
+        run: |
+          xcrun altool --upload-app --type ios --file opcode-v${{ needs.create-release.outputs.version }}-ios.ipa \
+            --username "${{ secrets.APPLE_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
+        if: secrets.APPLE_ID != ''
+        continue-on-error: true
+
+      - name: Cleanup provisioning
+        if: always()
+        run: |
+          rm -f profile.mobileprovision
+          rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision
+
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [create-release, build-android-release, build-ios-release]
+    if: always()
+
+    steps:
+      - name: Discord notification
+        uses: sarisia/actions-status-discord@v1
+        if: secrets.DISCORD_WEBHOOK != ''
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "Release v${{ needs.create-release.outputs.version }}"
+          description: |
+            **Android:** ${{ needs.build-android-release.result }}
+            **iOS:** ${{ needs.build-ios-release.result }}
+          color: ${{ needs.build-android-release.result == 'success' && needs.build-ios-release.result == 'success' && 0x00ff00 || 0xff0000 }}
+        continue-on-error: true
+
+      - name: Slack notification
+        uses: slackapi/slack-github-action@v1
+        if: secrets.SLACK_WEBHOOK_URL != ''
+        with:
+          payload: |
+            {
+              "text": "Release v${{ needs.create-release.outputs.version }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Release v${{ needs.create-release.outputs.version }}*\n• Android: ${{ needs.build-android-release.result }}\n• iOS: ${{ needs.build-ios-release.result }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+  release-summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs: [create-release, build-android-release, build-ios-release]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Release Summary v${{ needs.create-release.outputs.version }}" > release-summary.md
+          echo "" >> release-summary.md
+          echo "| Platform | Status | Artifact |" >> release-summary.md
+          echo "|----------|--------|----------|" >> release-summary.md
+          echo "| Android APK | ${{ needs.build-android-release.result }} | opcode-v${{ needs.create-release.outputs.version }}-android.apk |" >> release-summary.md
+          echo "| Android AAB | ${{ needs.build-android-release.result }} | opcode-v${{ needs.create-release.outputs.version }}-android.aab |" >> release-summary.md
+          echo "| iOS IPA | ${{ needs.build-ios-release.result }} | opcode-v${{ needs.create-release.outputs.version }}-ios.ipa |" >> release-summary.md
+          cat release-summary.md
+
+      - name: Check release status
+        run: |
+          if [ "${{ needs.build-android-release.result }}" != "success" ] || \
+             [ "${{ needs.build-ios-release.result }}" != "success" ]; then
+            echo "::warning::Some platform builds failed"
+            exit 0
+          fi
+          echo "✅ All platform builds succeeded"

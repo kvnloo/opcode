@@ -53,6 +53,11 @@
     },
     "shell": {
       "open": true
+    },
+    "deep-link": {
+      "mobile": [
+        { "host": "claudecodemobile.app", "pathPrefix": ["/"] }
+      ]
     }
   },
   "bundle": {
@@ -91,6 +96,9 @@
       "signingIdentity": null,
       "providerShortName": null,
       "entitlements": "entitlements.plist"
+    },
+    "iOS": {
+      "minimumSystemVersion": "13.0"
     }
   }
 }

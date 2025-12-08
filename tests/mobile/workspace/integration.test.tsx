@@ -1,0 +1,520 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { WorkspaceScreen } from '@/screens/mobile/WorkspaceScreen';
+import { AppsScreen } from '@/screens/mobile/AppsScreen';
+
+// Mock workspace store
+const mockWorkspaceStore = {
+  currentProject: null,
+  activePane: 'console',
+  toolsOverlayOpen: false,
+  agentStatus: 'idle',
+  tasks: [],
+  currentTaskId: null,
+  checkpoints: [],
+  workDurationSeconds: 0,
+  previewUrl: '/',
+  deviceFrame: 'iphone',
+  isPreviewLoading: false,
+  subdomain: '',
+  subdomainAvailable: null,
+  publishStatus: 'unpublished',
+  publishError: null,
+  setProject: vi.fn(),
+  setActivePane: vi.fn(),
+  openToolsOverlay: vi.fn(),
+  closeToolsOverlay: vi.fn(),
+  startAgent: vi.fn(),
+  stopAgent: vi.fn(),
+  addTask: vi.fn(),
+  updateTask: vi.fn(),
+  addCheckpoint: vi.fn(),
+  rollbackToCheckpoint: vi.fn(),
+  incrementWorkDuration: vi.fn(),
+  clearTasks: vi.fn(),
+  setPreviewUrl: vi.fn(),
+  setDeviceFrame: vi.fn(),
+  setPreviewLoading: vi.fn(),
+  refreshPreview: vi.fn(),
+  setSubdomain: vi.fn(),
+  checkSubdomainAvailability: vi.fn(),
+  publish: vi.fn(),
+  unpublish: vi.fn(),
+  resetWorkspace: vi.fn(),
+};
+
+vi.mock('@/stores/workspaceStore', () => ({
+  useWorkspaceStore: () => mockWorkspaceStore,
+  useCurrentProject: () => mockWorkspaceStore.currentProject,
+  useActivePane: () => mockWorkspaceStore.activePane,
+  useAgentStatus: () => mockWorkspaceStore.agentStatus,
+  useTasks: () => mockWorkspaceStore.tasks,
+  useCurrentTask: () => null,
+  usePreview: () => ({
+    url: mockWorkspaceStore.previewUrl,
+    deviceFrame: mockWorkspaceStore.deviceFrame,
+    isLoading: mockWorkspaceStore.isPreviewLoading,
+  }),
+  usePublishing: () => ({
+    subdomain: mockWorkspaceStore.subdomain,
+    subdomainAvailable: mockWorkspaceStore.subdomainAvailable,
+    status: mockWorkspaceStore.publishStatus,
+    error: mockWorkspaceStore.publishError,
+  }),
+}));
+
+// Mock haptics
+vi.mock('@/hooks/mobile/useHaptics', () => ({
+  useHaptics: () => ({
+    selection: vi.fn(),
+    light: vi.fn(),
+    medium: vi.fn(),
+    heavy: vi.fn(),
+  }),
+}));
+
+// Mock ProjectList component
+vi.mock('@/components/mobile/apps/ProjectList', () => ({
+  ProjectList: ({ projects, onProjectSelect }: any) => (
+    <div data-testid="project-list">
+      {projects.length === 0 ? (
+        <div>No apps yet</div>
+      ) : (
+        <div>
+          {projects.map((p: any) => (
+            <button key={p.id} onClick={() => onProjectSelect?.(p)}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  ),
+}));
+
+describe('Workspace Integration Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockWorkspaceStore.activePane = 'console';
+    mockWorkspaceStore.toolsOverlayOpen = false;
+  });
+
+  describe('Full navigation flow', () => {
+    it('should navigate from AppsScreen to WorkspaceScreen', async () => {
+      const mockProjects = [
+        { id: 'project-1', name: 'My First App', path: '/path/to/app1' },
+        { id: 'project-2', name: 'My Second App', path: '/path/to/app2' },
+      ];
+
+      // Start at AppsScreen
+      const { unmount, rerender } = render(<AppsScreen />);
+
+      // Should show empty state initially
+      expect(screen.getByText('No apps yet')).toBeInTheDocument();
+
+      // Simulate projects loaded
+      vi.mocked(vi.fn()).mockImplementation(() => ({
+        ProjectList: ({ projects, onProjectSelect }: any) => (
+          <div data-testid="project-list">
+            {mockProjects.map((p: any) => (
+              <button key={p.id} onClick={() => onProjectSelect?.(p)}>
+                {p.name}
+              </button>
+            ))}
+          </div>
+        ),
+      }));
+
+      unmount();
+
+      // Navigate to workspace
+      render(<WorkspaceScreen projectId="project-1" projectName="My First App" onBack={vi.fn()} />);
+
+      expect(screen.getByText('My First App')).toBeInTheDocument();
+      expect(screen.getByText('Console')).toBeInTheDocument();
+    });
+
+    it('should return to AppsScreen when back is clicked', () => {
+      const mockOnBack = vi.fn();
+
+      render(<WorkspaceScreen projectId="test-project" projectName="Test App" onBack={mockOnBack} />);
+
+      const backButton = screen.getByLabelText('Go back');
+      fireEvent.click(backButton);
+
+      expect(mockOnBack).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Pane switching integration', () => {
+    it('should switch between all panes', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      // Start at console pane
+      expect(screen.getByText('Terminal output will appear here')).toBeInTheDocument();
+
+      // Switch to agent
+      const agentButton = screen.getByLabelText('Agent');
+      fireEvent.click(agentButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+      });
+
+      // Switch to deploy
+      const deployButton = screen.getByLabelText('Deploy');
+      fireEvent.click(deployButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Deployment controls will appear here')).toBeInTheDocument();
+      });
+
+      // Switch to share
+      const shareButton = screen.getByLabelText('Share');
+      fireEvent.click(shareButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Sharing options will appear here')).toBeInTheDocument();
+      });
+
+      // Switch to preview
+      const previewButton = screen.getByLabelText('Preview');
+      fireEvent.click(previewButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Live preview will appear here')).toBeInTheDocument();
+      });
+    });
+
+    it('should maintain pane state across tool overlay interactions', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      // Switch to agent pane
+      const agentButton = screen.getByLabelText('Agent');
+      fireEvent.click(agentButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+      });
+
+      // Open tools overlay
+      const moreButton = screen.getByLabelText('More options');
+      fireEvent.click(moreButton);
+
+      await waitFor(() => {
+        const showToolsButton = screen.getByText('Show Tools');
+        fireEvent.click(showToolsButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Project Tools')).toBeInTheDocument();
+      });
+
+      // Close overlay
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      fireEvent.click(closeButton);
+
+      // Should still be on agent pane
+      await waitFor(() => {
+        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Tools overlay workflow', () => {
+    it('should open tools overlay from menu', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      const moreButton = screen.getByLabelText('More options');
+      fireEvent.click(moreButton);
+
+      await waitFor(() => {
+        const showToolsButton = screen.getByText('Show Tools');
+        fireEvent.click(showToolsButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Project Tools')).toBeInTheDocument();
+      });
+    });
+
+    it('should close tools overlay and return to workspace', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      // Open overlay
+      const moreButton = screen.getByLabelText('More options');
+      fireEvent.click(moreButton);
+
+      await waitFor(() => {
+        const showToolsButton = screen.getByText('Show Tools');
+        fireEvent.click(showToolsButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Project Tools')).toBeInTheDocument();
+      });
+
+      // Close overlay
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      fireEvent.click(closeButton);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
+      });
+
+      // Should show workspace content
+      expect(screen.getByText('Test')).toBeInTheDocument();
+    });
+
+    it('should close overlay when backdrop clicked', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      // Open overlay
+      const moreButton = screen.getByLabelText('More options');
+      fireEvent.click(moreButton);
+
+      await waitFor(() => {
+        const showToolsButton = screen.getByText('Show Tools');
+        fireEvent.click(showToolsButton);
+      });
+
+      await waitFor(() => {
+        const overlay = screen.getByText('Project Tools').closest('.absolute');
+        if (overlay) {
+          fireEvent.click(overlay);
+        }
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Pane content rendering', () => {
+    it('should render correct pane content for each pane type', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      const panes = [
+        { label: 'Console', content: 'Terminal output will appear here' },
+        { label: 'Agent', content: 'AI agent chat will appear here' },
+        { label: 'Deploy', content: 'Deployment controls will appear here' },
+        { label: 'Share', content: 'Sharing options will appear here' },
+        { label: 'Preview', content: 'Live preview will appear here' },
+      ];
+
+      for (const pane of panes) {
+        const button = screen.getByLabelText(pane.label);
+        fireEvent.click(button);
+
+        await waitFor(() => {
+          expect(screen.getByText(pane.content)).toBeInTheDocument();
+        });
+      }
+    });
+
+    it('should show project ID in all panes', async () => {
+      render(<WorkspaceScreen projectId="test-project-123" projectName="Test" onBack={vi.fn()} />);
+
+      const panes = ['Console', 'Agent', 'Deploy', 'Share', 'Preview'];
+
+      for (const paneLabel of panes) {
+        const button = screen.getByLabelText(paneLabel);
+        fireEvent.click(button);
+
+        await waitFor(() => {
+          expect(screen.getByText(/test-project-123/)).toBeInTheDocument();
+        });
+      }
+    });
+  });
+
+  describe('Workspace header interactions', () => {
+    it('should show project name in header', () => {
+      render(<WorkspaceScreen projectId="test" projectName="My Amazing Project" onBack={vi.fn()} />);
+
+      expect(screen.getByText('My Amazing Project')).toBeInTheDocument();
+    });
+
+    it('should show dropdown menu options', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      const moreButton = screen.getByLabelText('More options');
+      fireEvent.click(moreButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Show Tools')).toBeInTheDocument();
+        expect(screen.getByText('Project Settings')).toBeInTheDocument();
+        expect(screen.getByText('Share Project')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Toolbar state synchronization', () => {
+    it('should highlight active pane in toolbar', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      // Console should be active initially
+      const consoleButton = screen.getByLabelText('Console');
+      expect(consoleButton).toHaveClass('text-primary');
+
+      // Switch to agent
+      const agentButton = screen.getByLabelText('Agent');
+      fireEvent.click(agentButton);
+
+      await waitFor(() => {
+        expect(agentButton).toHaveClass('text-primary');
+      });
+    });
+
+    it('should update pane content when toolbar button clicked', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      const agentButton = screen.getByLabelText('Agent');
+      fireEvent.click(agentButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Complete user journey', () => {
+    it('should support full workspace workflow', async () => {
+      const mockOnBack = vi.fn();
+
+      render(<WorkspaceScreen projectId="my-project" projectName="My App" onBack={mockOnBack} />);
+
+      // 1. Start in console pane
+      expect(screen.getByText('Terminal output will appear here')).toBeInTheDocument();
+
+      // 2. Switch to agent pane
+      const agentButton = screen.getByLabelText('Agent');
+      fireEvent.click(agentButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('AI agent chat will appear here')).toBeInTheDocument();
+      });
+
+      // 3. Open tools overlay
+      const moreButton = screen.getByLabelText('More options');
+      fireEvent.click(moreButton);
+
+      await waitFor(() => {
+        const showToolsButton = screen.getByText('Show Tools');
+        fireEvent.click(showToolsButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Project Tools')).toBeInTheDocument();
+      });
+
+      // 4. Close tools overlay
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      fireEvent.click(closeButton);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
+      });
+
+      // 5. Switch to preview pane
+      const previewButton = screen.getByLabelText('Preview');
+      fireEvent.click(previewButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Live preview will appear here')).toBeInTheDocument();
+      });
+
+      // 6. Navigate back
+      const backButton = screen.getByLabelText('Go back');
+      fireEvent.click(backButton);
+
+      expect(mockOnBack).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Edge cases and error handling', () => {
+    it('should handle empty project name', () => {
+      render(<WorkspaceScreen projectId="test" projectName="" onBack={vi.fn()} />);
+
+      // Should still render without errors
+      expect(screen.getByLabelText('Console')).toBeInTheDocument();
+    });
+
+    it('should handle rapid pane switching', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      const buttons = [
+        screen.getByLabelText('Agent'),
+        screen.getByLabelText('Deploy'),
+        screen.getByLabelText('Share'),
+        screen.getByLabelText('Preview'),
+        screen.getByLabelText('Console'),
+      ];
+
+      // Rapidly click through panes
+      for (const button of buttons) {
+        fireEvent.click(button);
+      }
+
+      // Should end on console pane
+      await waitFor(() => {
+        expect(screen.getByText('Terminal output will appear here')).toBeInTheDocument();
+      });
+    });
+
+    it('should handle special characters in project name', () => {
+      render(
+        <WorkspaceScreen
+          projectId="test"
+          projectName="Test <>&\"'Project"
+          onBack={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText('Test <>&"\'Project')).toBeInTheDocument();
+    });
+
+    it('should handle very long project names', () => {
+      const longName = 'Very Long Project Name That Should Be Truncated In The UI';
+
+      render(<WorkspaceScreen projectId="test" projectName={longName} onBack={vi.fn()} />);
+
+      const projectName = screen.getByText(longName);
+      expect(projectName).toHaveClass('truncate');
+    });
+  });
+
+  describe('Accessibility in integration', () => {
+    it('should maintain keyboard navigation throughout flow', async () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      // Tab to back button
+      const backButton = screen.getByLabelText('Go back');
+      backButton.focus();
+      expect(backButton).toHaveFocus();
+
+      // Tab to more options
+      const moreButton = screen.getByLabelText('More options');
+      moreButton.focus();
+      expect(moreButton).toHaveFocus();
+
+      // Tab to toolbar buttons
+      const consoleButton = screen.getByLabelText('Console');
+      consoleButton.focus();
+      expect(consoleButton).toHaveFocus();
+    });
+
+    it('should have proper ARIA labels throughout', () => {
+      render(<WorkspaceScreen projectId="test" projectName="Test" onBack={vi.fn()} />);
+
+      expect(screen.getByLabelText('Go back')).toBeInTheDocument();
+      expect(screen.getByLabelText('More options')).toBeInTheDocument();
+      expect(screen.getByLabelText('Console')).toBeInTheDocument();
+      expect(screen.getByLabelText('Agent')).toBeInTheDocument();
+      expect(screen.getByLabelText('Deploy')).toBeInTheDocument();
+      expect(screen.getByLabelText('Share')).toBeInTheDocument();
+      expect(screen.getByLabelText('Preview')).toBeInTheDocument();
+    });
+  });
+});

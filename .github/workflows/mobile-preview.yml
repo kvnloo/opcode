@@ -1,0 +1,243 @@
+name: Mobile Preview
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feature/mobile
+    paths:
+      - 'src/**'
+      - 'src-tauri/**'
+      - 'package.json'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  RUST_BACKTRACE: 1
+
+jobs:
+  build-preview:
+    name: Build Preview APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          cache-on-failure: true
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
+      - name: Build preview APK
+        run: tauri android build --apk --debug
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+
+      - name: Get APK path
+        id: apk_path
+        run: |
+          APK_PATH=$(find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          echo "path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "name=$(basename $APK_PATH)" >> $GITHUB_OUTPUT
+
+      - name: Get APK size
+        id: apk_size
+        run: |
+          SIZE=$(du -h "${{ steps.apk_path.outputs.path }}" | cut -f1)
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+
+      - name: Upload preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-apk-pr-${{ github.event.pull_request.number }}
+          path: ${{ steps.apk_path.outputs.path }}
+          retention-days: 7
+
+      - name: Get base APK size (if exists)
+        id: base_size
+        continue-on-error: true
+        run: |
+          gh run download -n preview-apk-base -D base-apk || echo "No base APK found"
+          if [ -f base-apk/*.apk ]; then
+            BASE_SIZE=$(du -h base-apk/*.apk | cut -f1)
+            echo "size=$BASE_SIZE" >> $GITHUB_OUTPUT
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const apkName = '${{ steps.apk_path.outputs.name }}';
+            const apkSize = '${{ steps.apk_size.outputs.size }}';
+            const baseExists = '${{ steps.base_size.outputs.exists }}';
+            const baseSize = '${{ steps.base_size.outputs.size }}';
+
+            let sizeComparison = '';
+            if (baseExists === 'true') {
+              sizeComparison = `\n**Size Comparison:** ${baseSize} → ${apkSize}`;
+            }
+
+            const comment = `## 📱 Preview APK Ready
+
+            **File:** \`${apkName}\`
+            **Size:** ${apkSize}${sizeComparison}
+
+            **Download:** [Download Preview APK](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            **Installation Instructions:**
+            1. Download the APK from the artifacts section
+            2. Enable "Install from unknown sources" on your Android device
+            3. Install the APK
+            4. Test the changes
+
+            **QR Code:** (Scan to download)
+            ![QR](https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ⚠️ **Note:** This is a debug build for testing purposes only.
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  visual-regression:
+    name: Visual Regression Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run visual regression tests
+        run: |
+          echo "Visual regression tests placeholder"
+          echo "Future: Implement screenshot comparison tests"
+          echo "Tools: Percy, Chromatic, or BackstopJS"
+        continue-on-error: true
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-screenshots
+          path: screenshots/
+        if: always()
+        continue-on-error: true
+
+  size-analysis:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for size analysis
+        run: npm run build
+
+      - name: Analyze bundle size
+        id: analyze
+        run: |
+          echo "# Bundle Size Analysis" > size-report.md
+          echo "" >> size-report.md
+          echo "## Assets" >> size-report.md
+          du -sh dist/* | sort -h | awk '{print "- " $2 ": " $1}' >> size-report.md
+          echo "" >> size-report.md
+          echo "## Total" >> size-report.md
+          du -sh dist | awk '{print "**Total:** " $1}' >> size-report.md
+          cat size-report.md
+
+      - name: Comment size report on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const sizeReport = fs.readFileSync('size-report.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: sizeReport
+            });
+
+  preview-summary:
+    name: Preview Summary
+    runs-on: ubuntu-latest
+    needs: [build-preview, visual-regression, size-analysis]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Preview Summary" > preview-summary.md
+          echo "" >> preview-summary.md
+          echo "| Check | Status |" >> preview-summary.md
+          echo "|-------|--------|" >> preview-summary.md
+          echo "| Preview Build | ${{ needs.build-preview.result }} |" >> preview-summary.md
+          echo "| Visual Regression | ${{ needs.visual-regression.result }} |" >> preview-summary.md
+          echo "| Size Analysis | ${{ needs.size-analysis.result }} |" >> preview-summary.md
+          cat preview-summary.md
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-summary
+          path: preview-summary.md

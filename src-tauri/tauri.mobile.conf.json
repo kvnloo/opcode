@@ -1,0 +1,168 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "productName": "Opcode",
+  "version": "1.0.0",
+  "identifier": "com.opcode.mobile",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist",
+    "withGlobalTauri": false
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "deb"],
+    "category": "DeveloperTool",
+    "copyright": "Copyright © 2025 Opcode",
+    "shortDescription": "Professional code editor for mobile",
+    "longDescription": "Opcode is a professional-grade code editor designed for developers on the go, featuring syntax highlighting for 50+ languages, Git integration, and a built-in terminal.",
+    "externalBin": [],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "macOS": {
+      "minimumSystemVersion": "10.13",
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null,
+      "entitlements": null
+    },
+    "iOS": {
+      "developmentTeam": "YOUR_TEAM_ID",
+      "minimumSystemVersion": "13.0"
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "wix": {
+        "language": "en-US"
+      }
+    }
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Opcode",
+        "width": 800,
+        "height": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false,
+        "fileDropEnabled": true
+      }
+    ],
+    "security": {
+      "csp": null,
+      "devCsp": null,
+      "freezePrototype": false
+    },
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://releases.yourdomain.com/opcode/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "dialog": true,
+      "pubkey": "YOUR_PUBLIC_KEY_HERE"
+    }
+  },
+  "android": {
+    "minSdkVersion": 24,
+    "targetSdkVersion": 34,
+    "compileSdkVersion": 34,
+    "versionCode": 1,
+    "permissions": [
+      "android.permission.INTERNET",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE"
+    ],
+    "features": [],
+    "signing": {
+      "storeFile": "path/to/keystore.jks",
+      "storePassword": "KEYSTORE_PASSWORD",
+      "keyAlias": "KEY_ALIAS",
+      "keyPassword": "KEY_PASSWORD"
+    },
+    "proguard": {
+      "enabled": true,
+      "rules": [
+        "-keep class com.opcode.** { *; }",
+        "-dontwarn **"
+      ]
+    },
+    "applicationId": "com.opcode.mobile",
+    "buildTypes": {
+      "release": {
+        "minifyEnabled": true,
+        "shrinkResources": true,
+        "proguardFiles": [
+          "proguard-rules.pro"
+        ]
+      },
+      "debug": {
+        "debuggable": true
+      }
+    }
+  },
+  "ios": {
+    "bundleIdentifier": "com.opcode.mobile",
+    "buildNumber": "1",
+    "minimumOSVersion": "13.0",
+    "developmentTeam": "YOUR_TEAM_ID",
+    "provisioningProfile": "YOUR_PROVISIONING_PROFILE_ID",
+    "signingIdentity": "Apple Development: YOUR_NAME (TEAM_ID)",
+    "entitlements": {
+      "com.apple.security.app-sandbox": true,
+      "com.apple.security.network.client": true,
+      "com.apple.security.files.user-selected.read-write": true,
+      "com.apple.security.files.bookmarks.app-scope": true
+    },
+    "frameworks": [],
+    "resources": [],
+    "infoPlist": {
+      "CFBundleDisplayName": "Opcode",
+      "CFBundleName": "Opcode",
+      "CFBundleShortVersionString": "1.0.0",
+      "CFBundleVersion": "1",
+      "LSRequiresIPhoneOS": true,
+      "UIRequiredDeviceCapabilities": [
+        "arm64"
+      ],
+      "UISupportedInterfaceOrientations": [
+        "UIInterfaceOrientationPortrait",
+        "UIInterfaceOrientationLandscapeLeft",
+        "UIInterfaceOrientationLandscapeRight"
+      ],
+      "UISupportedInterfaceOrientations~ipad": [
+        "UIInterfaceOrientationPortrait",
+        "UIInterfaceOrientationPortraitUpsideDown",
+        "UIInterfaceOrientationLandscapeLeft",
+        "UIInterfaceOrientationLandscapeRight"
+      ],
+      "UILaunchStoryboardName": "LaunchScreen",
+      "UIMainStoryboardFile": "",
+      "UIStatusBarStyle": "UIStatusBarStyleDefault",
+      "NSAppTransportSecurity": {
+        "NSAllowsArbitraryLoads": false
+      },
+      "NSPhotoLibraryUsageDescription": "This app needs access to photos to allow file imports.",
+      "NSDocumentsFolderUsageDescription": "This app needs access to documents to open and edit code files.",
+      "NSDownloadsFolderUsageDescription": "This app needs access to downloads to import files.",
+      "ITSAppUsesNonExemptEncryption": false
+    }
+  }
+}
