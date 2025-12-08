@@ -4,7 +4,8 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
  * Tests visibility detection, lazy loading, animations, and infinite scroll
  */
 
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, waitFor, act, render } from '@testing-library/react';
+import { useEffect } from 'react';
 import {
   useIntersectionObserver,
   useLazyImage,
@@ -13,6 +14,14 @@ import {
   useMultipleIntersectionObserver,
   useVisibilityPercentage,
 } from '@/hooks/mobile/useIntersectionObserver';
+
+// Create spy functions for IntersectionObserver methods
+const mockObserveFn = vi.fn();
+const mockUnobserveFn = vi.fn();
+const mockDisconnectFn = vi.fn();
+const mockTakeRecordsFn = vi.fn(() => []);
+
+let mockObserver: MockIntersectionObserver | null = null;
 
 // Mock IntersectionObserver
 class MockIntersectionObserver implements IntersectionObserver {
@@ -29,9 +38,13 @@ class MockIntersectionObserver implements IntersectionObserver {
     this.thresholds = Array.isArray(options?.threshold)
       ? options.threshold
       : [options?.threshold || 0];
+
+    // Store this instance globally for test access
+    mockObserver = this;
   }
 
-  observe = vi.fn((target: Element) => {
+  observe = (target: Element) => {
+    mockObserveFn(target);
     // Immediately call callback with mock entry
     const entry: IntersectionObserverEntry = {
       target,
@@ -43,15 +56,23 @@ class MockIntersectionObserver implements IntersectionObserver {
       time: Date.now(),
     };
     this.callback([entry], this);
-  });
+  };
 
-  unobserve = vi.fn();
-  disconnect = vi.fn();
-  takeRecords = vi.fn(() => []);
+  unobserve = (target: Element) => {
+    mockUnobserveFn(target);
+  };
+
+  disconnect = () => {
+    mockDisconnectFn();
+  };
+
+  takeRecords = () => {
+    return mockTakeRecordsFn();
+  };
 
   // Helper to trigger intersection
   triggerIntersection(isIntersecting: boolean, ratio: number = 1) {
-    const targets = this.observe.mock.calls.map((call) => call[0]);
+    const targets = mockObserveFn.mock.calls.map((call) => call[0]);
     targets.forEach((target) => {
       const entry: IntersectionObserverEntry = {
         target,
@@ -67,15 +88,15 @@ class MockIntersectionObserver implements IntersectionObserver {
   }
 }
 
-let mockObserver: MockIntersectionObserver | null = null;
-
 describe('useIntersectionObserver', () => {
   beforeEach(() => {
     mockObserver = null;
-    (global as any).IntersectionObserver = vi.fn((callback, options) => {
-      mockObserver = new MockIntersectionObserver(callback, options);
-      return mockObserver;
-    });
+    mockObserveFn.mockClear();
+    mockUnobserveFn.mockClear();
+    mockDisconnectFn.mockClear();
+    mockTakeRecordsFn.mockClear();
+
+    (global as any).IntersectionObserver = MockIntersectionObserver;
   });
 
   afterEach(() => {
@@ -91,14 +112,15 @@ describe('useIntersectionObserver', () => {
     });
 
     test('should observe element when ref is set', () => {
-      const { result } = renderHook(() => useIntersectionObserver());
+      const TestComponent = () => {
+        const { ref } = useIntersectionObserver();
+        return <div ref={ref as any} />;
+      };
 
-      const element = document.createElement('div');
-      act(() => {
-        (result.current.ref as any).current = element;
-      });
+      const { container } = render(<TestComponent />);
+      const element = container.firstChild as Element;
 
-      expect(mockObserver?.observe).toHaveBeenCalledWith(element);
+      expect(mockObserveFn).toHaveBeenCalledWith(element);
     });
 
     test('should update isIntersecting when element becomes visible', async () => {
@@ -146,20 +168,35 @@ describe('useIntersectionObserver', () => {
 
   describe('Options', () => {
     test('should respect threshold option', () => {
-      renderHook(() => useIntersectionObserver({ threshold: 0.5 }));
+      const TestComponent = () => {
+        const { ref } = useIntersectionObserver({ threshold: 0.5 });
+        return <div ref={ref as any} />;
+      };
+
+      render(<TestComponent />);
 
       expect(mockObserver?.thresholds).toEqual([0.5]);
     });
 
     test('should respect root option', () => {
       const root = document.createElement('div');
-      renderHook(() => useIntersectionObserver({ root }));
+      const TestComponent = () => {
+        const { ref } = useIntersectionObserver({ root });
+        return <div ref={ref as any} />;
+      };
+
+      render(<TestComponent />);
 
       expect(mockObserver?.root).toBe(root);
     });
 
     test('should respect rootMargin option', () => {
-      renderHook(() => useIntersectionObserver({ rootMargin: '10px' }));
+      const TestComponent = () => {
+        const { ref } = useIntersectionObserver({ rootMargin: '10px' });
+        return <div ref={ref as any} />;
+      };
+
+      render(<TestComponent />);
 
       expect(mockObserver?.rootMargin).toBe('10px');
     });
@@ -204,7 +241,7 @@ describe('useIntersectionObserver', () => {
         expect(result.current.isIntersecting).toBe(true);
       });
 
-      expect(mockObserver?.disconnect).toHaveBeenCalled();
+      expect(mockDisconnectFn).toHaveBeenCalled();
 
       // Further changes should not update state
       act(() => {
@@ -230,7 +267,7 @@ describe('useIntersectionObserver', () => {
         mockObserver?.triggerIntersection(false);
       });
 
-      expect(mockObserver?.disconnect).not.toHaveBeenCalled();
+      expect(mockDisconnectFn).not.toHaveBeenCalled();
 
       act(() => {
         mockObserver?.triggerIntersection(true);
@@ -240,7 +277,7 @@ describe('useIntersectionObserver', () => {
         expect(result.current.isIntersecting).toBe(true);
       });
 
-      expect(mockObserver?.disconnect).toHaveBeenCalled();
+      expect(mockDisconnectFn).toHaveBeenCalled();
     });
   });
 
@@ -263,7 +300,7 @@ describe('useIntersectionObserver', () => {
         expect(result.current.isIntersecting).toBe(true);
       });
 
-      expect(mockObserver?.disconnect).toHaveBeenCalled();
+      expect(mockDisconnectFn).toHaveBeenCalled();
     });
   });
 
@@ -297,7 +334,7 @@ describe('useIntersectionObserver', () => {
 
       unmount();
 
-      expect(mockObserver?.disconnect).toHaveBeenCalled();
+      expect(mockDisconnectFn).toHaveBeenCalled();
     });
   });
 });
@@ -305,10 +342,12 @@ describe('useIntersectionObserver', () => {
 describe('useLazyImage', () => {
   beforeEach(() => {
     mockObserver = null;
-    (global as any).IntersectionObserver = vi.fn((callback, options) => {
-      mockObserver = new MockIntersectionObserver(callback, options);
-      return mockObserver;
-    });
+    mockObserveFn.mockClear();
+    mockUnobserveFn.mockClear();
+    mockDisconnectFn.mockClear();
+    mockTakeRecordsFn.mockClear();
+
+    (global as any).IntersectionObserver = MockIntersectionObserver;
 
     // Mock Image
     (global as any).Image = class {
@@ -389,10 +428,12 @@ describe('useLazyImage', () => {
 describe('useScrollAnimation', () => {
   beforeEach(() => {
     mockObserver = null;
-    (global as any).IntersectionObserver = vi.fn((callback, options) => {
-      mockObserver = new MockIntersectionObserver(callback, options);
-      return mockObserver;
-    });
+    mockObserveFn.mockClear();
+    mockUnobserveFn.mockClear();
+    mockDisconnectFn.mockClear();
+    mockTakeRecordsFn.mockClear();
+
+    (global as any).IntersectionObserver = MockIntersectionObserver;
   });
 
   test('should return empty className initially', () => {
@@ -423,15 +464,23 @@ describe('useScrollAnimation', () => {
   });
 
   test('should use default threshold of 0.3', () => {
-    renderHook(() => useScrollAnimation('animate-fade-in'));
+    const TestComponent = () => {
+      const { ref } = useScrollAnimation('animate-fade-in');
+      return <div ref={ref as any} />;
+    };
+
+    render(<TestComponent />);
 
     expect(mockObserver?.thresholds).toEqual([0.3]);
   });
 
   test('should respect custom threshold', () => {
-    renderHook(() =>
-      useScrollAnimation('animate-fade-in', { threshold: 0.5 })
-    );
+    const TestComponent = () => {
+      const { ref } = useScrollAnimation('animate-fade-in', { threshold: 0.5 });
+      return <div ref={ref as any} />;
+    };
+
+    render(<TestComponent />);
 
     expect(mockObserver?.thresholds).toEqual([0.5]);
   });
@@ -440,10 +489,12 @@ describe('useScrollAnimation', () => {
 describe('useInfiniteScroll', () => {
   beforeEach(() => {
     mockObserver = null;
-    (global as any).IntersectionObserver = vi.fn((callback, options) => {
-      mockObserver = new MockIntersectionObserver(callback, options);
-      return mockObserver;
-    });
+    mockObserveFn.mockClear();
+    mockUnobserveFn.mockClear();
+    mockDisconnectFn.mockClear();
+    mockTakeRecordsFn.mockClear();
+
+    (global as any).IntersectionObserver = MockIntersectionObserver;
   });
 
   test('should call onLoadMore when intersecting', async () => {
@@ -527,7 +578,12 @@ describe('useInfiniteScroll', () => {
 
   test('should use default rootMargin of 100px', () => {
     const onLoadMore = vi.fn();
-    renderHook(() => useInfiniteScroll(onLoadMore));
+    const TestComponent = () => {
+      const { ref } = useInfiniteScroll(onLoadMore);
+      return <div ref={ref as any} />;
+    };
+
+    render(<TestComponent />);
 
     expect(mockObserver?.rootMargin).toBe('100px');
   });
@@ -536,10 +592,12 @@ describe('useInfiniteScroll', () => {
 describe('useMultipleIntersectionObserver', () => {
   beforeEach(() => {
     mockObserver = null;
-    (global as any).IntersectionObserver = vi.fn((callback, options) => {
-      mockObserver = new MockIntersectionObserver(callback, options);
-      return mockObserver;
-    });
+    mockObserveFn.mockClear();
+    mockUnobserveFn.mockClear();
+    mockDisconnectFn.mockClear();
+    mockTakeRecordsFn.mockClear();
+
+    (global as any).IntersectionObserver = MockIntersectionObserver;
   });
 
   test('should track multiple elements', () => {
@@ -559,7 +617,7 @@ describe('useMultipleIntersectionObserver', () => {
       });
     });
 
-    expect(mockObserver?.observe).toHaveBeenCalledTimes(3);
+    expect(mockObserveFn).toHaveBeenCalledTimes(3);
   });
 
   test('should update intersection state for multiple elements', async () => {
@@ -592,10 +650,12 @@ describe('useMultipleIntersectionObserver', () => {
 describe('useVisibilityPercentage', () => {
   beforeEach(() => {
     mockObserver = null;
-    (global as any).IntersectionObserver = vi.fn((callback, options) => {
-      mockObserver = new MockIntersectionObserver(callback, options);
-      return mockObserver;
-    });
+    mockObserveFn.mockClear();
+    mockUnobserveFn.mockClear();
+    mockDisconnectFn.mockClear();
+    mockTakeRecordsFn.mockClear();
+
+    (global as any).IntersectionObserver = MockIntersectionObserver;
   });
 
   test('should initialize with 0% visibility', () => {
@@ -622,7 +682,12 @@ describe('useVisibilityPercentage', () => {
   });
 
   test('should use 101 threshold steps', () => {
-    renderHook(() => useVisibilityPercentage());
+    const TestComponent = () => {
+      const { ref } = useVisibilityPercentage();
+      return <div ref={ref as any} />;
+    };
+
+    render(<TestComponent />);
 
     expect(mockObserver?.thresholds.length).toBe(101);
     expect(mockObserver?.thresholds[0]).toBe(0);

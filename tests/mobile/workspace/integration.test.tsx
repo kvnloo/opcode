@@ -426,15 +426,16 @@ describe('Workspace Integration Tests', () => {
     });
 
     it('should handle special characters in project name', () => {
+      const projectName = 'Test <>&"Project';
       render(
         <WorkspaceScreen
           projectId="test"
-          projectName="Test <>&\"'Project"
+          projectName={projectName}
           onBack={vi.fn()}
         />
       );
 
-      expect(screen.getByText('Test <>&"\'Project')).toBeInTheDocument();
+      expect(screen.getByText(projectName)).toBeInTheDocument();
     });
 
     it('should handle very long project names', () => {

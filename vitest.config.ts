@@ -19,6 +19,11 @@ export default defineConfig({
       '.git',
       '.cache',
     ],
+    server: {
+      deps: {
+        inline: ['@tauri-apps/api'],
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
@@ -54,6 +59,11 @@ export default defineConfig({
       '@/stores': path.resolve(__dirname, './src/stores'),
       '@/types': path.resolve(__dirname, './src/types'),
       '@/services': path.resolve(__dirname, './src/services'),
+      // Mock Tauri modules for testing
+      '@tauri-apps/api/shell': path.resolve(__dirname, './tests/mobile/mocks/tauri-shell.ts'),
+      '@tauri-apps/api/core': path.resolve(__dirname, './tests/mobile/mocks/tauri-core.ts'),
+      '@tauri-apps/api/event': path.resolve(__dirname, './tests/mobile/mocks/tauri-event.ts'),
+      '@tauri-apps/plugin-os': path.resolve(__dirname, './tests/mobile/mocks/tauri-os.ts'),
     },
   },
 });

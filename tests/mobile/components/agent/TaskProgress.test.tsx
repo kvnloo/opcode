@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { render } from '../../../utils/renderWithProviders';
-import { tap } from '../../../utils/gestures';
+import { render } from '../../utils/renderWithProviders';
+import { tap } from '../../utils/gestures';
 import { TaskProgress } from '@/components/mobile/agent/TaskProgress';
 import type { AgentTask } from '@/components/mobile/agent/AgentExecutionView';
 
@@ -82,7 +82,8 @@ describe('TaskProgress', () => {
       const { container } = render(<TaskProgress tasks={mockTasks} currentTaskIndex={0} />);
 
       const completedTask = screen.getByText('Analyze requirements').closest('div');
-      const icon = completedTask?.querySelector('.text-green-500');
+      // The icon is an SVG with class text-green-500
+      const icon = completedTask?.querySelector('svg.text-green-500');
       expect(icon).toBeInTheDocument();
     });
 
@@ -90,7 +91,8 @@ describe('TaskProgress', () => {
       const { container } = render(<TaskProgress tasks={mockTasks} currentTaskIndex={1} />);
 
       const inProgressTask = screen.getByText('Design architecture').closest('div');
-      const spinner = inProgressTask?.querySelector('.animate-spin');
+      // The spinner is an SVG with animate-spin class
+      const spinner = inProgressTask?.querySelector('svg.animate-spin');
       expect(spinner).toBeInTheDocument();
     });
 
@@ -98,7 +100,8 @@ describe('TaskProgress', () => {
       const { container } = render(<TaskProgress tasks={mockTasks} currentTaskIndex={2} />);
 
       const pendingTask = screen.getByText('Implement features').closest('div');
-      const icon = pendingTask?.querySelector('.text-muted-foreground');
+      // The icon is an SVG with text-muted-foreground class
+      const icon = pendingTask?.querySelector('svg.text-muted-foreground');
       expect(icon).toBeInTheDocument();
     });
 
@@ -106,7 +109,8 @@ describe('TaskProgress', () => {
       const { container } = render(<TaskProgress tasks={mockTasks} currentTaskIndex={3} />);
 
       const errorTask = screen.getByText('Write tests').closest('div');
-      const icon = errorTask?.querySelector('.text-red-500');
+      // The icon is an SVG with text-red-500 class
+      const icon = errorTask?.querySelector('svg.text-red-500');
       expect(icon).toBeInTheDocument();
     });
   });

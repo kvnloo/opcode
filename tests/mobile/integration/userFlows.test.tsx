@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, act } from '@testing-library/react';
 import { render } from '@/../tests/mobile/utils/renderWithProviders';
 import { waitForAnimation, ANIMATION_DURATIONS } from '@/../tests/mobile/utils/waitForAnimations';
 import { MobileLayout } from '@/layouts/MobileLayout';
@@ -7,11 +7,30 @@ import { AppsScreen } from '@/screens/mobile/AppsScreen';
 import { CreateScreen } from '@/screens/mobile/CreateScreen';
 import { AccountScreen } from '@/screens/mobile/AccountScreen';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { useSessionStore } from '@/stores/sessionStore';
 import userEvent from '@testing-library/user-event';
+
+// Mock sessionStore
+vi.mock('@/stores/sessionStore', () => ({
+  useSessionStore: vi.fn(() => ({
+    projects: [],
+    fetchProjects: vi.fn(),
+    isLoadingProjects: false,
+    error: null,
+  })),
+}));
 
 describe('Complete User Flow Integration Tests', () => {
   beforeEach(() => {
     useWorkspaceStore.getState().resetWorkspace();
+
+    // Reset sessionStore mock
+    vi.mocked(useSessionStore).mockReturnValue({
+      projects: [],
+      fetchProjects: vi.fn(),
+      isLoadingProjects: false,
+      error: null,
+    } as any);
   });
 
   describe('Create New Project Flow', () => {
@@ -19,11 +38,13 @@ describe('Complete User Flow Integration Tests', () => {
       const user = userEvent.setup();
       let activePane = 'create';
 
-      const { rerender } = render(
-        <MobileLayout activePane={activePane}>
-          <CreateScreen />
-        </MobileLayout>
-      );
+      const { rerender } = await act(async () => {
+        return render(
+          <MobileLayout activePane={activePane}>
+            <CreateScreen />
+          </MobileLayout>
+        );
+      });
 
       // Step 1: User is on Create screen
       expect(screen.getByText(/New Project/i)).toBeInTheDocument();
@@ -49,11 +70,13 @@ describe('Complete User Flow Integration Tests', () => {
 
       // Step 5: Should navigate to Apps screen with new project
       activePane = 'apps';
-      rerender(
-        <MobileLayout activePane={activePane}>
-          <AppsScreen />
-        </MobileLayout>
-      );
+      await act(async () => {
+        rerender(
+          <MobileLayout activePane={activePane}>
+            <AppsScreen />
+          </MobileLayout>
+        );
+      });
 
       await waitForAnimation();
 
@@ -64,11 +87,13 @@ describe('Complete User Flow Integration Tests', () => {
     it('should handle project creation validation errors', async () => {
       const user = userEvent.setup();
 
-      render(
-        <MobileLayout activePane="create">
-          <CreateScreen />
-        </MobileLayout>
-      );
+      await act(async () => {
+        render(
+          <MobileLayout activePane="create">
+            <CreateScreen />
+          </MobileLayout>
+        );
+      });
 
       // Try to create without name
       const createButton = screen.getByRole('button', { name: /Create Project/i });
@@ -89,11 +114,13 @@ describe('Complete User Flow Integration Tests', () => {
       const user = userEvent.setup();
       let activePane = 'create';
 
-      const { rerender } = render(
-        <MobileLayout activePane={activePane}>
-          <CreateScreen />
-        </MobileLayout>
-      );
+      const { rerender } = await act(async () => {
+        return render(
+          <MobileLayout activePane={activePane}>
+            <CreateScreen />
+          </MobileLayout>
+        );
+      });
 
       // Start filling form
       const projectNameInput = screen.getByPlaceholderText(/Project name/i);
@@ -103,11 +130,13 @@ describe('Complete User Flow Integration Tests', () => {
 
       // Cancel and navigate to Apps
       activePane = 'apps';
-      rerender(
-        <MobileLayout activePane={activePane}>
-          <AppsScreen />
-        </MobileLayout>
-      );
+      await act(async () => {
+        rerender(
+          <MobileLayout activePane={activePane}>
+            <AppsScreen />
+          </MobileLayout>
+        );
+      });
 
       await waitForAnimation();
 
@@ -116,11 +145,13 @@ describe('Complete User Flow Integration Tests', () => {
 
       // Navigate back to Create
       activePane = 'create';
-      rerender(
-        <MobileLayout activePane={activePane}>
-          <CreateScreen />
-        </MobileLayout>
-      );
+      await act(async () => {
+        rerender(
+          <MobileLayout activePane={activePane}>
+            <CreateScreen />
+          </MobileLayout>
+        );
+      });
 
       await waitForAnimation();
 
@@ -133,7 +164,9 @@ describe('Complete User Flow Integration Tests', () => {
     it('should open project from Apps screen to workspace', async () => {
       const user = userEvent.setup();
 
-      render(<AppsScreen />);
+      await act(async () => {
+        render(<AppsScreen />);
+      });
 
       await waitForAnimation();
 
@@ -147,7 +180,9 @@ describe('Complete User Flow Integration Tests', () => {
         path: '/projects/existing',
       };
 
-      useWorkspaceStore.getState().setProject(mockProject);
+      await act(async () => {
+        useWorkspaceStore.getState().setProject(mockProject);
+      });
 
       // Wait for workspace to render
       await waitFor(() => {
@@ -168,9 +203,13 @@ describe('Complete User Flow Integration Tests', () => {
         path: '/projects/test',
       };
 
-      useWorkspaceStore.getState().setProject(mockProject);
+      await act(async () => {
+        useWorkspaceStore.getState().setProject(mockProject);
+      });
 
-      render(<AppsScreen />);
+      await act(async () => {
+        render(<AppsScreen />);
+      });
 
       await waitForAnimation();
 
@@ -214,9 +253,13 @@ describe('Complete User Flow Integration Tests', () => {
         path: '/projects/test',
       };
 
-      useWorkspaceStore.getState().setProject(mockProject);
+      await act(async () => {
+        useWorkspaceStore.getState().setProject(mockProject);
+      });
 
-      const { rerender } = render(<AppsScreen />);
+      const { rerender } = await act(async () => {
+        return render(<AppsScreen />);
+      });
 
       await waitForAnimation();
 

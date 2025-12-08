@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, act } from '@testing-library/react';
 import { render } from '@/../tests/mobile/utils/renderWithProviders';
 import { waitForAnimation } from '@/../tests/mobile/utils/waitForAnimations';
 import { MobileLayout } from '@/layouts/MobileLayout';
@@ -7,11 +7,30 @@ import { AppsScreen } from '@/screens/mobile/AppsScreen';
 import { CreateScreen } from '@/screens/mobile/CreateScreen';
 import { AccountScreen } from '@/screens/mobile/AccountScreen';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { useSessionStore } from '@/stores/sessionStore';
+
+// Mock sessionStore
+vi.mock('@/stores/sessionStore', () => ({
+  useSessionStore: vi.fn(() => ({
+    projects: [],
+    fetchProjects: vi.fn(),
+    isLoadingProjects: false,
+    error: null,
+  })),
+}));
 
 describe('Navigation Integration Tests', () => {
   beforeEach(() => {
     // Reset workspace store before each test
     useWorkspaceStore.getState().resetWorkspace();
+
+    // Reset sessionStore mock
+    vi.mocked(useSessionStore).mockReturnValue({
+      projects: [],
+      fetchProjects: vi.fn(),
+      isLoadingProjects: false,
+      error: null,
+    } as any);
   });
 
   describe('Tab Navigation', () => {
@@ -21,27 +40,33 @@ describe('Navigation Integration Tests', () => {
         currentPane = pane;
       });
 
-      const { rerender } = render(
-        <MobileLayout activePane="apps" onPaneChange={handlePaneChange}>
-          <AppsScreen />
-        </MobileLayout>
-      );
+      const { rerender } = await act(async () => {
+        return render(
+          <MobileLayout activePane="apps" onPaneChange={handlePaneChange}>
+            <AppsScreen />
+          </MobileLayout>
+        );
+      });
 
       // Verify Apps screen header is visible
       expect(screen.getByText('Apps')).toBeInTheDocument();
 
       // Click Create tab
       const createButton = screen.getByLabelText('Create');
-      createButton.click();
+      await act(async () => {
+        createButton.click();
+      });
 
       expect(handlePaneChange).toHaveBeenCalledWith('create');
 
       // Rerender with Create pane
-      rerender(
-        <MobileLayout activePane="create" onPaneChange={handlePaneChange}>
-          <CreateScreen />
-        </MobileLayout>
-      );
+      await act(async () => {
+        rerender(
+          <MobileLayout activePane="create" onPaneChange={handlePaneChange}>
+            <CreateScreen />
+          </MobileLayout>
+        );
+      });
 
       await waitForAnimation();
 
@@ -50,16 +75,20 @@ describe('Navigation Integration Tests', () => {
 
       // Click Account tab
       const accountButton = screen.getByLabelText('Account');
-      accountButton.click();
+      await act(async () => {
+        accountButton.click();
+      });
 
       expect(handlePaneChange).toHaveBeenCalledWith('account');
 
       // Rerender with Account pane
-      rerender(
-        <MobileLayout activePane="account" onPaneChange={handlePaneChange}>
-          <AccountScreen />
-        </MobileLayout>
-      );
+      await act(async () => {
+        rerender(
+          <MobileLayout activePane="account" onPaneChange={handlePaneChange}>
+            <AccountScreen />
+          </MobileLayout>
+        );
+      });
 
       await waitForAnimation();
 

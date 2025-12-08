@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { render } from '../../../utils/renderWithProviders';
-import { tap, swipeLeft, swipeRight } from '../../../utils/gestures';
+import { render } from '../../utils/renderWithProviders';
+import { tap, swipeLeft, swipeRight } from '../../utils/gestures';
 import { FileDiffViewer } from '@/components/mobile/agent/FileDiffViewer';
 
 const mockFiles = [

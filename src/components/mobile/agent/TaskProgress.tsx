@@ -159,7 +159,7 @@ export function TaskProgress({ tasks, currentTaskIndex, className }: TaskProgres
       })}
 
       {/* Generating state */}
-      {tasks.length === 0 || tasks.every((t) => t.status === 'pending') && (
+      {(tasks.length === 0 || tasks.every((t) => t.status === 'pending')) && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

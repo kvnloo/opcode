@@ -3,6 +3,33 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { ConsolePane, ConsolePaneProps } from '@/components/mobile/workspace/panes/ConsolePane';
 import userEvent from '@testing-library/user-event';
 
+// Setup navigator.clipboard mock BEFORE any other setup
+// This must be done at module level for userEvent to work properly
+if (!Object.getOwnPropertyDescriptor(navigator, 'clipboard')) {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: {
+      writeText: vi.fn().mockResolvedValue(undefined),
+      readText: vi.fn().mockResolvedValue(''),
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+// Ensure window properties exist
+if (typeof window !== 'undefined') {
+  // Fix for "Right-hand side of 'instanceof' is not an object"
+  if (!window.HTMLElement) {
+    (window as any).HTMLElement = function() {};
+  }
+  if (!window.HTMLInputElement) {
+    (window as any).HTMLInputElement = function() {};
+  }
+  if (!window.HTMLTextAreaElement) {
+    (window as any).HTMLTextAreaElement = function() {};
+  }
+}
+
 // Mock Tauri API
 const mockInvoke = vi.fn();
 vi.mock('@tauri-apps/api/core', () => ({
@@ -57,6 +84,9 @@ describe('ConsolePane', () => {
 
   describe('Rendering', () => {
     it('renders console header with project path', () => {
+      // Skip clipboard setup for userEvent to avoid JSDOM issues
+      const user = userEvent.setup({ skipHover: true, skipAutoClose: true });
+
       render(<ConsolePane {...defaultProps} />);
 
       expect(screen.getByText('Console')).toBeInTheDocument();

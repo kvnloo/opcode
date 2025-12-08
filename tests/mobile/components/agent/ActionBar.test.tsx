@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { render } from '../../../utils/renderWithProviders';
-import { tap } from '../../../utils/gestures';
+import { render } from '../../utils/renderWithProviders';
+import { tap } from '../../utils/gestures';
 import { ActionBar } from '@/components/mobile/agent/ActionBar';
 
 // Mock vibrate API
@@ -344,10 +344,8 @@ describe('ActionBar', () => {
 
     it('should handle missing vibrate API gracefully', async () => {
       const originalVibrate = navigator.vibrate;
-      Object.defineProperty(navigator, 'vibrate', {
-        writable: true,
-        value: undefined,
-      });
+      // Delete the property entirely to simulate missing API
+      delete (navigator as any).vibrate;
 
       render(<ActionBar {...defaultProps} status="completed" />);
 
@@ -358,6 +356,7 @@ describe('ActionBar', () => {
         expect(true).toBe(true);
       });
 
+      // Restore the original vibrate
       Object.defineProperty(navigator, 'vibrate', {
         writable: true,
         value: originalVibrate,

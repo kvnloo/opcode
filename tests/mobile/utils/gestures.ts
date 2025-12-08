@@ -135,6 +135,9 @@ export async function tap(element: Element, point?: { x: number; y: number }): P
 
   const touchEnd = createTouchEvent('touchend', []);
   fireEvent(element, touchEnd);
+
+  // Also fire click event for components using onClick handlers
+  fireEvent.click(element);
 }
 
 /**

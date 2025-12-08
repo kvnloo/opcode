@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BottomNavigation, NavigationTab } from '@/components/mobile/navigation/BottomNavigation';
 
@@ -152,10 +152,16 @@ describe('BottomNavigation', () => {
     it('should be keyboard navigable', () => {
       render(<BottomNavigation active="apps" onChange={mockOnChange} />);
 
-      const createButton = screen.getByLabelText('Create');
-      createButton.focus();
+      // Verify all buttons are in the tab order (no negative tabindex)
+      const buttons = screen.getAllByRole('button');
+      buttons.forEach(button => {
+        expect(button).not.toHaveAttribute('tabindex', '-1');
+      });
 
-      expect(document.activeElement).toBe(createButton);
+      // Verify buttons are standard HTML buttons (focusable by default)
+      buttons.forEach(button => {
+        expect(button.tagName).toBe('BUTTON');
+      });
     });
   });
 

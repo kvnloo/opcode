@@ -5,6 +5,14 @@ import { ResponsiveLayout } from '@/layouts/ResponsiveLayout';
 // Define MobilePane type for the mock
 export type MobilePane = 'agent' | 'create' | 'apps' | 'account';
 
+// Use vi.hoisted to ensure mock is defined before imports
+const mockUseIsMobile = vi.hoisted(() => vi.fn(() => false));
+
+// Mock useIsMobile hook
+vi.mock('@/hooks/mobile/usePlatform', () => ({
+  useIsMobile: mockUseIsMobile,
+}));
+
 // Mock the layout components
 vi.mock('@/layouts/MobileLayout', () => ({
   MobileLayout: ({ children, activePane, onPaneChange }: any) => (
@@ -24,22 +32,17 @@ vi.mock('@/layouts/DesktopLayout', () => ({
   ),
 }));
 
-// Mock useIsMobile hook
-vi.mock('@/hooks/mobile/usePlatform', () => ({
-  useIsMobile: vi.fn(() => false),
-}));
-
 describe('ResponsiveLayout', () => {
   const mockOnPaneChange = vi.fn();
 
   beforeEach(() => {
-    mockOnPaneChange.mockClear();
+    vi.clearAllMocks();
+    mockUseIsMobile.mockReturnValue(false); // Default to desktop
   });
 
   describe('Mobile Rendering', () => {
     beforeEach(() => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(true);
+      mockUseIsMobile.mockReturnValue(true);
     });
 
     it('renders MobileLayout on mobile', () => {
@@ -103,8 +106,7 @@ describe('ResponsiveLayout', () => {
 
   describe('Desktop Rendering', () => {
     beforeEach(() => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(false);
+      mockUseIsMobile.mockReturnValue(false);
     });
 
     it('renders DesktopLayout on desktop', () => {
@@ -155,8 +157,7 @@ describe('ResponsiveLayout', () => {
 
   describe('Responsive Switching', () => {
     it('switches from desktop to mobile layout', () => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(false);
+      mockUseIsMobile.mockReturnValue(false);
 
       const { rerender } = render(
         <ResponsiveLayout>
@@ -166,7 +167,7 @@ describe('ResponsiveLayout', () => {
 
       expect(screen.getByTestId('desktop-layout')).toBeInTheDocument();
 
-      useIsMobile.mockReturnValue(true);
+      mockUseIsMobile.mockReturnValue(true);
 
       rerender(
         <ResponsiveLayout>
@@ -179,8 +180,7 @@ describe('ResponsiveLayout', () => {
     });
 
     it('switches from mobile to desktop layout', () => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(true);
+      mockUseIsMobile.mockReturnValue(true);
 
       const { rerender } = render(
         <ResponsiveLayout>
@@ -190,7 +190,7 @@ describe('ResponsiveLayout', () => {
 
       expect(screen.getByTestId('mobile-layout')).toBeInTheDocument();
 
-      useIsMobile.mockReturnValue(false);
+      mockUseIsMobile.mockReturnValue(false);
 
       rerender(
         <ResponsiveLayout>
@@ -205,8 +205,7 @@ describe('ResponsiveLayout', () => {
 
   describe('Children Priority', () => {
     it('uses mobileChildren on mobile when both children are provided', () => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(true);
+      mockUseIsMobile.mockReturnValue(true);
 
       render(
         <ResponsiveLayout
@@ -223,8 +222,7 @@ describe('ResponsiveLayout', () => {
     });
 
     it('uses desktopChildren on desktop when both children are provided', () => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(false);
+      mockUseIsMobile.mockReturnValue(false);
 
       render(
         <ResponsiveLayout
@@ -241,8 +239,7 @@ describe('ResponsiveLayout', () => {
     });
 
     it('falls back to children when specific children not provided', () => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(true);
+      mockUseIsMobile.mockReturnValue(true);
 
       render(
         <ResponsiveLayout>
@@ -256,8 +253,7 @@ describe('ResponsiveLayout', () => {
 
   describe('Props Forwarding', () => {
     it('forwards all mobile props correctly', () => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(true);
+      mockUseIsMobile.mockReturnValue(true);
 
       render(
         <ResponsiveLayout
@@ -273,8 +269,7 @@ describe('ResponsiveLayout', () => {
     });
 
     it('does not break when mobile props provided on desktop', () => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(false);
+      mockUseIsMobile.mockReturnValue(false);
 
       render(
         <ResponsiveLayout
@@ -292,8 +287,7 @@ describe('ResponsiveLayout', () => {
 
   describe('Edge Cases', () => {
     it('handles undefined activePane gracefully', () => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(true);
+      mockUseIsMobile.mockReturnValue(true);
 
       render(
         <ResponsiveLayout>
@@ -305,8 +299,7 @@ describe('ResponsiveLayout', () => {
     });
 
     it('handles missing onPaneChange gracefully', () => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(true);
+      mockUseIsMobile.mockReturnValue(true);
 
       render(
         <ResponsiveLayout activePane="apps">
@@ -318,8 +311,7 @@ describe('ResponsiveLayout', () => {
     });
 
     it('renders with no children', () => {
-      const { useIsMobile } = require('@/hooks/mobile/usePlatform');
-      useIsMobile.mockReturnValue(true);
+      mockUseIsMobile.mockReturnValue(true);
 
       const { container } = render(<ResponsiveLayout />);
 

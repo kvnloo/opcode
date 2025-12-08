@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
-import { render } from '../../../utils/renderWithProviders';
-import { tap } from '../../../utils/gestures';
+import { render } from '../../utils/renderWithProviders';
+import { tap } from '../../utils/gestures';
 import { PreviewWebView } from '@/components/mobile/preview/PreviewWebView';
 
 // Mock vibrate API
@@ -17,6 +17,42 @@ global.window.open = mockWindowOpen;
 
 // Mock alert
 global.alert = vi.fn();
+
+// Mock iframe behavior for JSDOM
+beforeAll(() => {
+  // Mock iframe contentWindow and contentDocument
+  Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+    get() {
+      return {
+        document: document,
+        location: {
+          href: this.src || 'about:blank',
+          reload: vi.fn()
+        },
+        postMessage: vi.fn(),
+      };
+    },
+    configurable: true,
+  });
+
+  Object.defineProperty(HTMLIFrameElement.prototype, 'contentDocument', {
+    get() {
+      return document;
+    },
+    configurable: true,
+  });
+
+  // Mock iframe onLoad event
+  Object.defineProperty(HTMLIFrameElement.prototype, 'onload', {
+    set(fn) {
+      if (typeof fn === 'function') {
+        // Trigger onLoad after a short delay to simulate loading
+        setTimeout(() => fn.call(this, new Event('load')), 0);
+      }
+    },
+    configurable: true,
+  });
+});
 
 describe('PreviewWebView', () => {
   const defaultProps = {
