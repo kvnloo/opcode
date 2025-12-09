@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Settings, Moon, Sun, Type, ChevronLeft } from 'lucide-react';
+import { Settings, Moon, Sun, Type, ChevronLeft, Loader2 } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
+import { api, ClaudeSettings } from '@/lib/api';
 
 interface UserSettings {
   theme: 'light' | 'dark';
@@ -10,6 +11,7 @@ interface UserSettings {
   tabSize: number;
   lineWrapping: boolean;
   autoSave: boolean;
+  claudeSettings?: ClaudeSettings;
 }
 
 interface UserSettingsPaneProps {
@@ -26,13 +28,82 @@ export function UserSettingsPane({ projectId, onBack, className }: UserSettingsP
     lineWrapping: true,
     autoSave: true,
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const updateSetting = <K extends keyof UserSettings>(
-    key: K,
-    value: UserSettings[K]
-  ) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-  };
+  // Check if running in Tauri environment
+  const isTauri = typeof window !== 'undefined' && (window as any).__TAURI__;
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!isTauri) {
+        // Use default settings for web/dev
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const [theme, fontSize, tabSize, lineWrapping, autoSave, claudeSettings] = await Promise.all([
+          api.getSetting('theme'),
+          api.getSetting('fontSize'),
+          api.getSetting('tabSize'),
+          api.getSetting('lineWrapping'),
+          api.getSetting('autoSave'),
+          api.getClaudeSettings().catch(() => ({})),
+        ]);
+
+        setSettings({
+          theme: (theme as 'light' | 'dark') || 'dark',
+          fontSize: fontSize ? parseInt(fontSize) : 14,
+          tabSize: tabSize ? parseInt(tabSize) : 2,
+          lineWrapping: lineWrapping === 'true',
+          autoSave: autoSave === 'true',
+          claudeSettings,
+        });
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+        setError('Failed to load settings');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [isTauri]);
+
+  // Debounced auto-save
+  const saveSettingDebounced = useCallback(
+    async (key: string, value: string) => {
+      if (!isTauri) return;
+
+      try {
+        await api.saveSetting(key, value);
+      } catch (err) {
+        console.error(`Failed to save setting ${key}:`, err);
+        setError(`Failed to save ${key}`);
+        // Clear error after 3 seconds
+        setTimeout(() => setError(null), 3000);
+      }
+    },
+    [isTauri]
+  );
+
+  const updateSetting = useCallback(
+    <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+
+      // Auto-save to API
+      if (isTauri) {
+        const stringValue = String(value);
+        saveSettingDebounced(key, stringValue);
+      }
+    },
+    [isTauri, saveSettingDebounced]
+  );
 
   const fontSizeOptions = [12, 14, 16, 18, 20];
   const tabSizeOptions = [2, 4, 8];
@@ -51,7 +122,14 @@ export function UserSettingsPane({ projectId, onBack, className }: UserSettingsP
         </Button>
         <Settings size={20} className="text-primary" />
         <h2 className="text-lg font-semibold">User Settings</h2>
+        {isLoading && <Loader2 size={16} className="animate-spin text-muted-foreground" />}
       </header>
+
+      {error && (
+        <div className="mx-4 mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto p-4 space-y-6">
         {/* Appearance Section */}

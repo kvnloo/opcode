@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { cn } from '@/lib/utils';
 import { Terminal, Trash2, ChevronLeft } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
@@ -14,13 +15,17 @@ interface HistoryEntry {
 
 interface ShellPaneProps {
   projectId: string;
+  projectPath?: string;
   onBack: () => void;
   className?: string;
 }
 
-export function ShellPane({ projectId, onBack, className }: ShellPaneProps) {
+export function ShellPane({ projectId, projectPath = `/projects/${projectId}`, onBack, className }: ShellPaneProps) {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [input, setInput] = useState('');
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isExecuting, setIsExecuting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,25 +36,29 @@ export function ShellPane({ projectId, onBack, className }: ShellPaneProps) {
     }
   }, [history]);
 
-  const handleExecute = () => {
-    if (!input.trim()) return;
+  const handleExecute = async () => {
+    if (!input.trim() || isExecuting) return;
 
     const command = input.trim();
+
+    // Handle built-in commands
+    if (command === 'clear' || command === 'cls') {
+      setHistory([]);
+      setInput('');
+      setCommandHistory([...commandHistory, command]);
+      setHistoryIndex(-1);
+      return;
+    }
+
     const newEntry: HistoryEntry = {
       id: Date.now().toString(),
       command,
-      output: `[Mock] Executed: ${command}\n\nThis is a simulated shell environment.\nCommand execution will be implemented in the backend.`,
+      output: '',
       timestamp: new Date(),
       isError: false,
     };
 
-    // Simulate different responses based on command
-    if (command === 'clear' || command === 'cls') {
-      setHistory([]);
-      setInput('');
-      return;
-    }
-
+    // Handle help command
     if (command === 'help') {
       newEntry.output = `Available commands:
   help    - Show this help message
@@ -57,24 +66,57 @@ export function ShellPane({ projectId, onBack, className }: ShellPaneProps) {
   pwd     - Print working directory
   ls      - List files
   echo    - Echo text
+  cd      - Change directory
 
-Commands are currently mocked. Backend implementation pending.`;
-    } else if (command === 'pwd') {
-      newEntry.output = `/projects/${projectId}`;
-    } else if (command.startsWith('ls')) {
-      newEntry.output = `src/
+${typeof window !== 'undefined' && (window as any).__TAURI__ ? 'Other commands are executed via terminal.' : 'Commands are currently mocked in development mode.'}`;
+      setHistory([...history, newEntry]);
+      setInput('');
+      setCommandHistory([...commandHistory, command]);
+      setHistoryIndex(-1);
+      setTimeout(() => inputRef.current?.focus(), 0);
+      return;
+    }
+
+    setIsExecuting(true);
+    setInput('');
+    setCommandHistory([...commandHistory, command]);
+    setHistoryIndex(-1);
+
+    try {
+      // Execute command via Tauri or use mock
+      if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+        const result = await invoke<string>('execute_terminal_command', {
+          command,
+          cwd: projectPath,
+          projectId,
+        });
+        newEntry.output = result;
+      } else {
+        // Fallback mock responses for development
+        if (command === 'pwd') {
+          newEntry.output = projectPath;
+        } else if (command.startsWith('ls')) {
+          newEntry.output = `src/
 tests/
 package.json
 README.md
 tsconfig.json`;
-    } else if (command.startsWith('echo ')) {
-      newEntry.output = command.slice(5);
-    } else if (command.startsWith('cd ')) {
-      newEntry.output = `Changed directory to: ${command.slice(3)}`;
+        } else if (command.startsWith('echo ')) {
+          newEntry.output = command.slice(5);
+        } else if (command.startsWith('cd ')) {
+          newEntry.output = `Changed directory to: ${command.slice(3)}`;
+        } else {
+          newEntry.output = `[Mock] Would execute in ${projectPath}: ${command}`;
+        }
+      }
+    } catch (error) {
+      newEntry.output = `Error: ${error instanceof Error ? error.message : String(error)}`;
+      newEntry.isError = true;
+    } finally {
+      setIsExecuting(false);
     }
 
     setHistory([...history, newEntry]);
-    setInput('');
 
     // Refocus input after execution
     setTimeout(() => {
@@ -86,6 +128,29 @@ tsconfig.json`;
     if (e.key === 'Enter') {
       e.preventDefault();
       handleExecute();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      // Navigate command history backwards
+      if (commandHistory.length > 0) {
+        const newIndex = historyIndex === -1
+          ? commandHistory.length - 1
+          : Math.max(0, historyIndex - 1);
+        setHistoryIndex(newIndex);
+        setInput(commandHistory[newIndex]);
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      // Navigate command history forwards
+      if (historyIndex >= 0) {
+        const newIndex = historyIndex + 1;
+        if (newIndex >= commandHistory.length) {
+          setHistoryIndex(-1);
+          setInput('');
+        } else {
+          setHistoryIndex(newIndex);
+          setInput(commandHistory[newIndex]);
+        }
+      }
     }
   };
 
@@ -127,7 +192,8 @@ tsconfig.json`;
         {history.length === 0 && (
           <div className="text-zinc-500 mb-4">
             <p>Welcome to Shell. Type 'help' for available commands.</p>
-            <p className="mt-2">$ _</p>
+            <p className="mt-2 text-zinc-600">{projectPath}</p>
+            <p className="mt-1">$ _</p>
           </div>
         )}
 
@@ -155,6 +221,12 @@ tsconfig.json`;
             </div>
           </div>
         ))}
+
+        {isExecuting && (
+          <div className="text-zinc-500 animate-pulse">
+            Executing...
+          </div>
+        )}
       </div>
 
       {/* Input Area */}

@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { cn } from '@/lib/utils';
 import { MessageSquare, Send, Trash2, ChevronLeft, Loader2 } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api';
 
 interface Message {
   id: string;
@@ -13,42 +15,97 @@ interface Message {
 
 interface AssistantPaneProps {
   projectId: string;
+  projectPath: string;
   onBack: () => void;
   className?: string;
 }
 
-export function AssistantPane({ projectId, onBack, className }: AssistantPaneProps) {
+export function AssistantPane({ projectId, projectPath, onBack, className }: AssistantPaneProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
       content: 'Hello! How can I help you with your project today?',
-      timestamp: new Date(Date.now() - 60000),
-    },
-    {
-      id: '2',
-      role: 'user',
-      content: 'Can you help me debug this authentication issue?',
-      timestamp: new Date(Date.now() - 30000),
-    },
-    {
-      id: '3',
-      role: 'assistant',
-      content: "I'd be happy to help! Please share the error message or describe what's happening when you try to authenticate.",
-      timestamp: new Date(Date.now() - 10000),
+      timestamp: new Date(),
     },
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const unlistenRefs = useRef<UnlistenFn[]>([]);
+  const isTauriEnvironment = typeof window !== 'undefined' && (window as any).__TAURI__;
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, currentAssistantMessage]);
 
-  const sendMessage = () => {
+  // Setup event listeners for Claude output
+  useEffect(() => {
+    if (!isTauriEnvironment) return;
+
+    const setupListeners = async () => {
+      try {
+        // Listen for streaming Claude output
+        const unlistenOutput = await listen('claude-output', (event: any) => {
+          const { content } = event.payload;
+          if (content) {
+            setCurrentAssistantMessage(prev => prev + content);
+          }
+        });
+        unlistenRefs.current.push(unlistenOutput);
+
+        // Listen for session completion
+        const unlistenCompleted = await listen('claude-session-completed', (event: any) => {
+          if (currentAssistantMessage.trim()) {
+            setMessages(prev => [
+              ...prev,
+              {
+                id: Date.now().toString(),
+                role: 'assistant',
+                content: currentAssistantMessage.trim(),
+                timestamp: new Date(),
+              },
+            ]);
+            setCurrentAssistantMessage('');
+          }
+          setIsLoading(false);
+        });
+        unlistenRefs.current.push(unlistenCompleted);
+
+        // Listen for errors
+        const unlistenError = await listen('claude-session-error', (event: any) => {
+          const errorMessage = event.payload?.error || 'An error occurred while processing your request.';
+          setMessages(prev => [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: `Error: ${errorMessage}`,
+              timestamp: new Date(),
+            },
+          ]);
+          setCurrentAssistantMessage('');
+          setIsLoading(false);
+        });
+        unlistenRefs.current.push(unlistenError);
+      } catch (error) {
+        console.error('Failed to setup event listeners:', error);
+      }
+    };
+
+    setupListeners();
+
+    // Cleanup listeners on unmount
+    return () => {
+      unlistenRefs.current.forEach(unlisten => unlisten());
+      unlistenRefs.current = [];
+    };
+  }, [isTauriEnvironment, currentAssistantMessage]);
+
+  const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
@@ -58,22 +115,51 @@ export function AssistantPane({ projectId, onBack, className }: AssistantPanePro
       timestamp: new Date(),
     };
 
-    setMessages([...messages, userMessage]);
+    const userPrompt = input.trim();
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setCurrentAssistantMessage('');
 
-    // Simulate AI response with delay
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'This is a mock response. In a real implementation, this would be connected to an AI assistant API.',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+    try {
+      if (isTauriEnvironment) {
+        // Real API call using Claude Code
+        await api.executeClaudeCode(
+          projectPath,
+          userPrompt,
+          'claude-sonnet-4-5-20250929' // Default model
+        );
+        // Response will come through event listeners
+      } else {
+        // Fallback mock for web/dev environment
+        setTimeout(() => {
+          const mockResponse = `I received your message: "${userPrompt}". This is a development mode response. In production, this would be connected to the Claude API.`;
+          setMessages(prev => [
+            ...prev,
+            {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: mockResponse,
+              timestamp: new Date(),
+            },
+          ]);
+          setIsLoading(false);
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `Error: Failed to send message. ${error instanceof Error ? error.message : 'Unknown error'}`,
+          timestamp: new Date(),
+        },
+      ]);
       setIsLoading(false);
-    }, 1500);
-  };
+    }
+  }, [input, isLoading, messages, projectPath, isTauriEnvironment]);
 
   const clearConversation = () => {
     setMessages([
@@ -152,6 +238,17 @@ export function AssistantPane({ projectId, onBack, className }: AssistantPanePro
             </span>
           </div>
         ))}
+
+        {/* Streaming assistant message */}
+        {currentAssistantMessage && (
+          <div className="flex flex-col gap-1 items-start">
+            <div className="max-w-[80%] rounded-2xl rounded-bl-sm px-4 py-2 bg-muted text-foreground">
+              <p className="text-sm whitespace-pre-wrap break-words">
+                {currentAssistantMessage}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Typing indicator */}
         {isLoading && (

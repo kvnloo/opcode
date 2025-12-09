@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import {
   GitBranch,
@@ -11,9 +11,11 @@ import {
   Check,
   Circle,
   ChevronDown,
+  Loader2,
 } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
+import { gitService, type GitFile } from '@/lib/mobile/git';
 
 interface ChangedFile {
   path: string;
@@ -34,52 +36,155 @@ const STATUS_ICONS = {
   untracked: { icon: Circle, color: 'text-gray-500', label: '?' },
 };
 
+const STATUS_MAP: Record<GitFile['status'], ChangedFile['status']> = {
+  M: 'modified',
+  A: 'added',
+  D: 'deleted',
+  '?': 'untracked',
+  R: 'modified',
+};
+
 export function GitPane({ projectId, onBack, className }: GitPaneProps) {
   const [currentBranch, setCurrentBranch] = useState('main');
-  const [branches] = useState(['main', 'develop', 'feature/auth']);
+  const [branches, setBranches] = useState<string[]>(['main', 'develop', 'feature/auth']);
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
   const [commitMessage, setCommitMessage] = useState('');
-  const [files, setFiles] = useState<ChangedFile[]>([
-    { path: 'src/components/Button.tsx', status: 'modified', staged: false },
-    { path: 'src/utils/helpers.ts', status: 'modified', staged: false },
-    { path: 'src/types/index.ts', status: 'added', staged: true },
-    { path: 'README.md', status: 'deleted', staged: false },
-  ]);
+  const [files, setFiles] = useState<ChangedFile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [operationLoading, setOperationLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const unstagedFiles = files.filter(f => !f.staged);
   const stagedFiles = files.filter(f => f.staged);
 
-  const stageFile = (path: string) => {
-    setFiles(files.map(f =>
-      f.path === path ? { ...f, staged: true } : f
-    ));
-  };
+  useEffect(() => {
+    loadGitStatus();
+    loadBranches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
-  const unstageFile = (path: string) => {
-    setFiles(files.map(f =>
-      f.path === path ? { ...f, staged: false } : f
-    ));
-  };
+  const loadGitStatus = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const status = await gitService.getStatus(projectId);
 
-  const handleCommit = () => {
-    if (commitMessage && stagedFiles.length > 0) {
-      console.log('Committing:', { message: commitMessage, files: stagedFiles });
-      setCommitMessage('');
-      setFiles(files.filter(f => !f.staged));
+      const changedFiles: ChangedFile[] = [
+        ...status.staged.map(f => ({
+          path: f.path,
+          status: STATUS_MAP[f.status],
+          staged: true,
+        })),
+        ...status.unstaged.map(f => ({
+          path: f.path,
+          status: STATUS_MAP[f.status],
+          staged: false,
+        })),
+        ...status.untracked.map(f => ({
+          path: f.path,
+          status: STATUS_MAP[f.status],
+          staged: false,
+        })),
+      ];
+
+      setFiles(changedFiles);
+      setCurrentBranch(status.branch);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load git status');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePush = () => {
-    console.log('Pushing to remote...');
+  const loadBranches = async () => {
+    try {
+      const branchList = await gitService.getBranches(projectId);
+      setBranches(branchList);
+    } catch (err) {
+      console.error('Failed to load branches:', err);
+    }
   };
 
-  const handlePull = () => {
-    console.log('Pulling from remote...');
+  const stageFile = async (path: string) => {
+    try {
+      setOperationLoading(`stage-${path}`);
+      await gitService.stage(projectId, [path]);
+      setFiles(files.map(f =>
+        f.path === path ? { ...f, staged: true } : f
+      ));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to stage file');
+    } finally {
+      setOperationLoading(null);
+    }
   };
 
-  const switchBranch = (branch: string) => {
-    setCurrentBranch(branch);
-    setShowBranchDropdown(false);
+  const unstageFile = async (path: string) => {
+    try {
+      setOperationLoading(`unstage-${path}`);
+      await gitService.unstage(projectId, [path]);
+      setFiles(files.map(f =>
+        f.path === path ? { ...f, staged: false } : f
+      ));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to unstage file');
+    } finally {
+      setOperationLoading(null);
+    }
+  };
+
+  const handleCommit = async () => {
+    if (!commitMessage || stagedFiles.length === 0) return;
+
+    try {
+      setOperationLoading('commit');
+      await gitService.commit(projectId, commitMessage);
+      setCommitMessage('');
+      setFiles(files.filter(f => !f.staged));
+      await loadGitStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to commit');
+    } finally {
+      setOperationLoading(null);
+    }
+  };
+
+  const handlePush = async () => {
+    try {
+      setOperationLoading('push');
+      await gitService.push(projectId);
+      await loadGitStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to push');
+    } finally {
+      setOperationLoading(null);
+    }
+  };
+
+  const handlePull = async () => {
+    try {
+      setOperationLoading('pull');
+      await gitService.pull(projectId);
+      await loadGitStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to pull');
+    } finally {
+      setOperationLoading(null);
+    }
+  };
+
+  const switchBranch = async (branch: string) => {
+    try {
+      setOperationLoading(`checkout-${branch}`);
+      await gitService.checkout(projectId, branch);
+      setCurrentBranch(branch);
+      setShowBranchDropdown(false);
+      await loadGitStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to switch branch');
+    } finally {
+      setOperationLoading(null);
+    }
   };
 
   return (
@@ -97,7 +202,14 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
         </Button>
         <GitBranch className="w-5 h-5 text-primary" />
         <h2 className="text-lg font-semibold">Git</h2>
+        {loading && <Loader2 className="w-4 h-4 animate-spin ml-auto" />}
       </header>
+
+      {error && (
+        <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto p-4 space-y-4">
         {/* Branch Selector */}
@@ -167,9 +279,14 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
                     <HapticButton
                       className="p-1 hover:bg-accent hover:text-accent-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => stageFile(file.path)}
+                      disabled={operationLoading === `stage-${file.path}`}
                       aria-label={`Stage ${file.path}`}
                     >
-                      <Plus className="w-4 h-4" />
+                      {operationLoading === `stage-${file.path}` ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Plus className="w-4 h-4" />
+                      )}
                     </HapticButton>
                   </div>
                 );
@@ -208,9 +325,14 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
                     <HapticButton
                       className="p-1 hover:bg-accent hover:text-accent-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => unstageFile(file.path)}
+                      disabled={operationLoading === `unstage-${file.path}`}
                       aria-label={`Unstage ${file.path}`}
                     >
-                      <Minus className="w-4 h-4" />
+                      {operationLoading === `unstage-${file.path}` ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Minus className="w-4 h-4" />
+                      )}
                     </HapticButton>
                   </div>
                 );
@@ -247,10 +369,14 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
             <HapticButton
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={handleCommit}
-              disabled={!commitMessage.trim()}
+              disabled={!commitMessage.trim() || operationLoading === 'commit'}
               aria-label="Commit changes"
             >
-              <GitCommit className="w-4 h-4 mr-2" />
+              {operationLoading === 'commit' ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <GitCommit className="w-4 h-4 mr-2" />
+              )}
               Commit {stagedFiles.length} {stagedFiles.length === 1 ? 'file' : 'files'}
             </HapticButton>
           </section>
@@ -261,17 +387,27 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
           <HapticButton
             className="flex items-center justify-center gap-2 px-4 py-2 bg-card border border-border hover:bg-muted"
             onClick={handlePull}
+            disabled={operationLoading === 'pull'}
             aria-label="Pull from remote"
           >
-            <Download className="w-4 h-4" />
+            {operationLoading === 'pull' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
             <span className="text-sm">Pull</span>
           </HapticButton>
           <HapticButton
             className="flex items-center justify-center gap-2 px-4 py-2 bg-card border border-border hover:bg-muted"
             onClick={handlePush}
+            disabled={operationLoading === 'push'}
             aria-label="Push to remote"
           >
-            <Upload className="w-4 h-4" />
+            {operationLoading === 'push' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
             <span className="text-sm">Push</span>
           </HapticButton>
         </section>

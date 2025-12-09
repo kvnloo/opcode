@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AssistantPane } from '@/components/mobile/workspace/panes/AssistantPane';
 
@@ -10,15 +10,57 @@ vi.mock('@/hooks/mobile/useHaptics', () => ({
   }),
 }));
 
+// Mock Tauri API
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(),
+}));
+
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn(),
+}));
+
+// Mock api module
+vi.mock('@/lib/api', () => ({
+  api: {
+    executeClaudeCode: vi.fn(),
+  },
+}));
+
 describe('AssistantPane', () => {
   const mockOnBack = vi.fn();
   const defaultProps = {
     projectId: 'test-project',
+    projectPath: '/test/path',
     onBack: mockOnBack,
   };
 
-  beforeEach(() => {
+  let mockInvoke: ReturnType<typeof vi.fn>;
+  let mockListen: ReturnType<typeof vi.fn>;
+  let mockUnlisten: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Get mocked functions
+    const { invoke } = await import('@tauri-apps/api/core');
+    const { listen } = await import('@tauri-apps/api/event');
+    mockInvoke = vi.mocked(invoke);
+    mockListen = vi.mocked(listen);
+    mockUnlisten = vi.fn();
+
+    // Setup default mock implementations
+    mockListen.mockImplementation((event: string, handler: Function) => {
+      // Return unlisten function
+      return Promise.resolve(mockUnlisten);
+    });
+
+    // Mock Tauri environment
+    (window as any).__TAURI__ = true;
+  });
+
+  afterEach(() => {
+    // Clean up Tauri mock
+    delete (window as any).__TAURI__;
   });
 
   describe('Rendering', () => {
@@ -57,7 +99,7 @@ describe('AssistantPane', () => {
       expect(sendButton).toBeInTheDocument();
     });
 
-    it('shows initial conversation messages', () => {
+    it('shows initial greeting message', () => {
       render(<AssistantPane {...defaultProps} />);
 
       expect(screen.getByText('Hello! How can I help you with your project today?')).toBeInTheDocument();
@@ -151,7 +193,10 @@ describe('AssistantPane', () => {
     });
 
     it('displays assistant responses after user sends message', async () => {
-      vi.useFakeTimers();
+      // Setup API mock
+      const { api } = await import('@/lib/api');
+      vi.mocked(api.executeClaudeCode).mockResolvedValue();
+
       render(<AssistantPane {...defaultProps} />);
 
       const input = screen.getByPlaceholderText('Type a message...');
@@ -160,14 +205,12 @@ describe('AssistantPane', () => {
       fireEvent.change(input, { target: { value: 'Test for AI response' } });
       fireEvent.click(sendButton);
 
-      // Advance timer to trigger mock AI response (1500ms in component)
-      await vi.runAllTimersAsync();
-
-      // Switch back to real timers before waitFor
-      vi.useRealTimers();
-
       await waitFor(() => {
-        expect(screen.getByText(/mock response/i)).toBeInTheDocument();
+        expect(api.executeClaudeCode).toHaveBeenCalledWith(
+          '/test/path',
+          'Test for AI response',
+          'claude-sonnet-4-5-20250929'
+        );
       });
     });
 
@@ -200,8 +243,16 @@ describe('AssistantPane', () => {
     it('clears messages when clear button clicked', async () => {
       render(<AssistantPane {...defaultProps} />);
 
-      // Initial message exists
-      expect(screen.getByText('Can you help me debug this authentication issue?')).toBeInTheDocument();
+      // Add a message first
+      const input = screen.getByPlaceholderText('Type a message...');
+      const sendButton = screen.getByLabelText('Send message');
+
+      fireEvent.change(input, { target: { value: 'Test message' } });
+      fireEvent.click(sendButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test message')).toBeInTheDocument();
+      });
 
       // Clear messages
       const clearButton = screen.getByLabelText('Clear conversation');
@@ -209,7 +260,7 @@ describe('AssistantPane', () => {
 
       await waitFor(() => {
         // Old messages should be gone
-        expect(screen.queryByText('Can you help me debug this authentication issue?')).not.toBeInTheDocument();
+        expect(screen.queryByText('Test message')).not.toBeInTheDocument();
         // New welcome message should appear
         expect(screen.getByText('Conversation cleared. How can I help you?')).toBeInTheDocument();
       });
@@ -230,6 +281,183 @@ describe('AssistantPane', () => {
       render(<AssistantPane {...defaultProps} />);
 
       expect(screen.getByRole('heading', { name: /AI Assistant/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Claude API Integration', () => {
+    it('calls executeClaudeCode with correct parameters', async () => {
+      const { api } = await import('@/lib/api');
+      vi.mocked(api.executeClaudeCode).mockResolvedValue();
+
+      render(<AssistantPane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a message...');
+      const sendButton = screen.getByLabelText('Send message');
+
+      fireEvent.change(input, { target: { value: 'Help me with authentication' } });
+      fireEvent.click(sendButton);
+
+      await waitFor(() => {
+        expect(api.executeClaudeCode).toHaveBeenCalledWith(
+          '/test/path',
+          'Help me with authentication',
+          'claude-sonnet-4-5-20250929'
+        );
+      });
+    });
+
+    it('handles streaming output from claude-output event', async () => {
+      let outputHandler: Function | null = null;
+
+      mockListen.mockImplementation((event: string, handler: Function) => {
+        if (event === 'claude-output') {
+          outputHandler = handler;
+        }
+        return Promise.resolve(mockUnlisten);
+      });
+
+      render(<AssistantPane {...defaultProps} />);
+
+      // Wait for listeners to be set up
+      await waitFor(() => {
+        expect(mockListen).toHaveBeenCalledWith('claude-output', expect.any(Function));
+      });
+
+      // Simulate streaming output
+      if (outputHandler) {
+        outputHandler({ payload: { content: 'Hello ' } });
+        outputHandler({ payload: { content: 'from ' } });
+        outputHandler({ payload: { content: 'Claude!' } });
+      }
+
+      // The streaming message should be displayed
+      await waitFor(() => {
+        expect(screen.getByText('Hello from Claude!')).toBeInTheDocument();
+      });
+    });
+
+    it('finalizes message on claude-session-completed event', async () => {
+      let outputHandler: Function | null = null;
+      let completedHandler: Function | null = null;
+
+      mockListen.mockImplementation((event: string, handler: Function) => {
+        if (event === 'claude-output') {
+          outputHandler = handler;
+        } else if (event === 'claude-session-completed') {
+          completedHandler = handler;
+        }
+        return Promise.resolve(mockUnlisten);
+      });
+
+      render(<AssistantPane {...defaultProps} />);
+
+      // Wait for listeners
+      await waitFor(() => {
+        expect(mockListen).toHaveBeenCalledWith('claude-output', expect.any(Function));
+        expect(mockListen).toHaveBeenCalledWith('claude-session-completed', expect.any(Function));
+      });
+
+      // Simulate streaming then completion
+      if (outputHandler) {
+        outputHandler({ payload: { content: 'Complete response' } });
+      }
+      if (completedHandler) {
+        completedHandler({ payload: {} });
+      }
+
+      // Message should be finalized
+      await waitFor(() => {
+        expect(screen.getByText('Complete response')).toBeInTheDocument();
+      });
+    });
+
+    it('handles errors from claude-session-error event', async () => {
+      let errorHandler: Function | null = null;
+
+      mockListen.mockImplementation((event: string, handler: Function) => {
+        if (event === 'claude-session-error') {
+          errorHandler = handler;
+        }
+        return Promise.resolve(mockUnlisten);
+      });
+
+      render(<AssistantPane {...defaultProps} />);
+
+      // Wait for listeners
+      await waitFor(() => {
+        expect(mockListen).toHaveBeenCalledWith('claude-session-error', expect.any(Function));
+      });
+
+      // Simulate error
+      if (errorHandler) {
+        errorHandler({ payload: { error: 'API rate limit exceeded' } });
+      }
+
+      // Error message should be displayed
+      await waitFor(() => {
+        expect(screen.getByText(/Error: API rate limit exceeded/)).toBeInTheDocument();
+      });
+    });
+
+    it('cleans up event listeners on unmount', async () => {
+      const { unmount } = render(<AssistantPane {...defaultProps} />);
+
+      // Wait for listeners to be set up
+      await waitFor(() => {
+        expect(mockListen).toHaveBeenCalled();
+      });
+
+      // Unmount component
+      unmount();
+
+      // Unlisten should be called for each listener
+      await waitFor(() => {
+        expect(mockUnlisten).toHaveBeenCalled();
+      });
+    });
+
+    it('falls back to mock response in non-Tauri environment', async () => {
+      // Remove Tauri environment
+      delete (window as any).__TAURI__;
+
+      vi.useFakeTimers();
+      render(<AssistantPane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a message...');
+      const sendButton = screen.getByLabelText('Send message');
+
+      fireEvent.change(input, { target: { value: 'Test in browser' } });
+      fireEvent.click(sendButton);
+
+      // Advance timer to trigger mock response
+      await vi.runAllTimersAsync();
+
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        expect(screen.getByText(/development mode response/i)).toBeInTheDocument();
+      });
+
+      // Restore Tauri environment for other tests
+      (window as any).__TAURI__ = true;
+    });
+
+    it('handles API execution errors gracefully', async () => {
+      const { api } = await import('@/lib/api');
+      vi.mocked(api.executeClaudeCode).mockRejectedValue(new Error('Network error'));
+
+      render(<AssistantPane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a message...');
+      const sendButton = screen.getByLabelText('Send message');
+
+      fireEvent.change(input, { target: { value: 'This will fail' } });
+      fireEvent.click(sendButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Error: Failed to send message/)).toBeInTheDocument();
+        expect(screen.getByText(/Network error/)).toBeInTheDocument();
+      });
     });
   });
 });

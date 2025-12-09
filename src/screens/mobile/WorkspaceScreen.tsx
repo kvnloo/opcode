@@ -43,6 +43,7 @@ const WORKSPACE_PANES: WorkspacePaneConfig[] = [
 interface WorkspaceScreenProps {
   projectId: string;
   projectName: string;
+  projectPath: string;
   onBack: () => void;
 }
 
@@ -60,7 +61,7 @@ const TOOL_PANE_MAP: Record<string, React.ComponentType<{projectId: string; onBa
   'workflows': WorkflowsPane,
 };
 
-export function WorkspaceScreen({ projectId, projectName, onBack }: WorkspaceScreenProps) {
+export function WorkspaceScreen({ projectId, projectName, projectPath, onBack }: WorkspaceScreenProps) {
   // Use workspace store for activePane to sync across tests and app
   const activePane = useWorkspaceStore((state) => state.activePane);
   const setActivePane = useWorkspaceStore((state) => state.setActivePane);
@@ -112,7 +113,7 @@ export function WorkspaceScreen({ projectId, projectName, onBack }: WorkspaceScr
               transition={{ duration: 0.2 }}
               className="h-full w-full"
             >
-              {renderToolPane(activeToolPane, projectId, handleToolPaneBack)}
+              {renderToolPane(activeToolPane, projectId, projectPath, handleToolPaneBack)}
             </motion.div>
           </AnimatePresence>
         ) : (
@@ -257,9 +258,16 @@ function renderPaneContent(pane: WorkspacePane, projectId: string) {
 }
 
 // Tool Pane Renderer
-function renderToolPane(toolId: string, projectId: string, onBack: () => void) {
+function renderToolPane(toolId: string, projectId: string, projectPath: string, onBack: () => void) {
   const PaneComponent = TOOL_PANE_MAP[toolId];
   if (!PaneComponent) return null;
+
+  // Special case for AssistantPane which needs projectPath
+  if (toolId === 'assistant') {
+    const { AssistantPane } = require('@/components/mobile/workspace/panes/AssistantPane');
+    return <AssistantPane projectId={projectId} projectPath={projectPath} onBack={onBack} />;
+  }
+
   return <PaneComponent projectId={projectId} onBack={onBack} />;
 }
 

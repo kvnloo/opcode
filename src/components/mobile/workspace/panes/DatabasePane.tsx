@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Database,
@@ -10,9 +10,26 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api';
+
+interface TableInfo {
+  name: string;
+  type: string;
+  sql: string;
+}
+
+interface ColumnInfo {
+  cid: number;
+  name: string;
+  type: string;
+  notnull: number;
+  dflt_value: any;
+  pk: number;
+}
 
 interface TableSchema {
   name: string;
@@ -31,7 +48,7 @@ interface DatabasePaneProps {
   className?: string;
 }
 
-// Mock data
+// Mock data for fallback
 const MOCK_TABLES: string[] = ['users', 'posts', 'comments'];
 
 const MOCK_SCHEMAS: Record<string, TableSchema> = {
@@ -80,24 +97,153 @@ const MOCK_QUERY_RESULT: QueryResult = {
 };
 
 export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps) {
+  // Check if running in Tauri environment (done inside component to allow testing)
+  const isTauriEnvironment = typeof window !== 'undefined' && (window as any).__TAURI__;
   const [isConnected, setIsConnected] = useState(true);
+  const [tables, setTables] = useState<string[]>([]);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [tableSchema, setTableSchema] = useState<TableSchema | null>(null);
   const [queryInput, setQueryInput] = useState('SELECT * FROM users LIMIT 10;');
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
   const [isQueryExpanded, setIsQueryExpanded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleRefresh = () => {
+  // Load tables on mount
+  useEffect(() => {
+    loadTables();
+  }, []);
+
+  // Load table schema when selection changes
+  useEffect(() => {
+    if (selectedTable) {
+      loadTableSchema(selectedTable);
+    } else {
+      setTableSchema(null);
+    }
+  }, [selectedTable]);
+
+  const loadTables = async () => {
+    if (!isTauriEnvironment) {
+      // Use mock data for non-Tauri environments
+      setTables(MOCK_TABLES);
+      setIsConnected(true);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const tableList = await api.storageListTables();
+      if (!tableList || !Array.isArray(tableList)) {
+        // Fallback to mock data if API returns invalid data
+        setTables(MOCK_TABLES);
+        setIsConnected(true);
+        return;
+      }
+      const tableNames = tableList
+        .filter((t: TableInfo) => t.type === 'table' && !t.name.startsWith('sqlite_'))
+        .map((t: TableInfo) => t.name);
+      setTables(tableNames);
+      setIsConnected(true);
+    } catch (err) {
+      console.error('Failed to load tables:', err);
+      setError('Failed to load database tables');
+      setIsConnected(false);
+      // Fallback to mock data on error
+      setTables(MOCK_TABLES);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadTableSchema = async (tableName: string) => {
+    if (!isTauriEnvironment) {
+      // Use mock schema for non-Tauri environments
+      setTableSchema(MOCK_SCHEMAS[tableName] || null);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Get table schema using PRAGMA
+      const schemaResult = await api.storageExecuteSql(`PRAGMA table_info(${tableName})`);
+
+      // Get row count
+      const countResult = await api.storageExecuteSql(`SELECT COUNT(*) as count FROM ${tableName}`);
+      const rowCount = countResult?.rows?.[0]?.count || 0;
+
+      // Transform schema data
+      const columns = (schemaResult?.rows || []).map((col: ColumnInfo) => ({
+        name: col.name,
+        type: col.type,
+        nullable: col.notnull === 0,
+      }));
+
+      setTableSchema({
+        name: tableName,
+        columns,
+        rowCount,
+      });
+    } catch (err) {
+      console.error('Failed to load table schema:', err);
+      setError(`Failed to load schema for table: ${tableName}`);
+      // Fallback to mock schema on error
+      setTableSchema(MOCK_SCHEMAS[tableName] || null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
     setIsRefreshing(true);
+    await loadTables();
+    if (selectedTable) {
+      await loadTableSchema(selectedTable);
+    }
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const handleRunQuery = () => {
-    // Simulate query execution
-    setQueryResult(MOCK_QUERY_RESULT);
+  const handleRunQuery = async () => {
+    if (!queryInput.trim()) {
+      setError('Please enter a SQL query');
+      return;
+    }
+
+    if (!isTauriEnvironment) {
+      // Use mock result for non-Tauri environments
+      setQueryResult(MOCK_QUERY_RESULT);
+      setError(null);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await api.storageExecuteSql(queryInput);
+
+      if (result?.rows && Array.isArray(result.rows)) {
+        // Extract column names from first row
+        const columns = result.rows.length > 0 ? Object.keys(result.rows[0]) : [];
+        setQueryResult({
+          columns,
+          rows: result.rows,
+        });
+      } else {
+        setQueryResult({ columns: [], rows: [] });
+      }
+    } catch (err) {
+      console.error('Failed to execute query:', err);
+      setError(`Query error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setQueryResult(null);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const selectedSchema = selectedTable ? MOCK_SCHEMAS[selectedTable] : null;
+  const selectedSchema = tableSchema;
 
   return (
     <div className={cn('h-full flex flex-col bg-background', className)}>
@@ -143,11 +289,15 @@ export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps
       <div className="flex-1 overflow-hidden flex flex-col">
         {/* Tables list */}
         <div className="border-b border-border bg-card">
-          <div className="px-4 py-2 text-sm font-medium text-muted-foreground">
-            Tables ({MOCK_TABLES.length})
+          <div className="px-4 py-2 text-sm font-medium text-muted-foreground flex items-center gap-2">
+            Tables ({tables.length})
+            {isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
           </div>
+          {error && (
+            <div className="px-4 pb-2 text-sm text-red-500">{error}</div>
+          )}
           <div className="flex gap-2 px-4 pb-3 overflow-x-auto">
-            {MOCK_TABLES.map((table) => (
+            {tables.map((table) => (
               <HapticButton
                 key={table}
                 className={cn(
@@ -167,7 +317,12 @@ export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps
 
         {/* Main content area */}
         <div className="flex-1 overflow-auto p-4">
-          {selectedSchema ? (
+          {isLoading && !selectedSchema ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Loader2 className="w-8 h-8 animate-spin mb-3 text-primary" />
+              <p className="text-sm text-muted-foreground">Loading table schema...</p>
+            </div>
+          ) : selectedSchema ? (
             <div className="space-y-4">
               {/* Table info */}
               <div className="flex items-center justify-between">
@@ -254,10 +409,22 @@ export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps
               <HapticButton
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-2"
                 onClick={handleRunQuery}
+                disabled={isLoading}
               >
-                <Play className="w-4 h-4" />
-                <span>Run Query</span>
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                <span>{isLoading ? 'Running...' : 'Run Query'}</span>
               </HapticButton>
+
+              {/* Query error */}
+              {error && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                </div>
+              )}
 
               {/* Query results */}
               {queryResult && (
