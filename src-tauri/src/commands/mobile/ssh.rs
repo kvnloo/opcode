@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 
 pub struct SshClient {
     session: Option<Arc<Mutex<client::Handle<SshHandler>>>>,
-    channel: Option<Arc<Mutex<Channel<Msg>>>>,
+    channel: Option<Arc<Mutex<Channel<client::Msg>>>>,
 }
 
 struct SshHandler;
@@ -60,27 +60,15 @@ impl SshClient {
             .await
             .map_err(|e| format!("Connection failed: {}", e))?;
 
-        // Try key-based auth first
-        let auth_result = if let Some(key_path) = key_path {
-            let key_pair = russh_keys::load_secret_key(key_path, None)
-                .map_err(|e| format!("Failed to load key: {}", e))?;
-            session.authenticate_publickey(username, Arc::new(key_pair)).await
-        } else {
-            // Fall back to SSH agent
-            let mut agent = russh_keys::agent::client::AgentClient::connect_env()
-                .await
-                .map_err(|e| format!("SSH agent not available: {}", e))?;
+        // Try key-based auth - key_path is required for now
+        // SSH agent auth would require additional implementation
+        let key_path = key_path.ok_or_else(|| {
+            "SSH key path required. SSH agent authentication not yet supported.".to_string()
+        })?;
 
-            let identities = agent.request_identities()
-                .await
-                .map_err(|e| format!("Failed to get identities: {}", e))?;
-
-            if identities.is_empty() {
-                return Err("No SSH keys available".to_string());
-            }
-
-            session.authenticate_publickey_with(username, identities[0].clone(), &mut agent).await
-        };
+        let key_pair = russh_keys::load_secret_key(key_path, None)
+            .map_err(|e| format!("Failed to load key: {}", e))?;
+        let auth_result = session.authenticate_publickey(username, Arc::new(key_pair)).await;
 
         if !auth_result.map_err(|e| format!("Auth failed: {}", e))? {
             return Err("Authentication failed".to_string());

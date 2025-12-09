@@ -45,7 +45,7 @@ export function AppStoragePane({ projectId: _projectId, onBack, className }: App
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
   return (
-    <div className={cn('h-full flex flex-col bg-background', className)}>
+    <div data-testid="pane-app-storage" className={cn('h-full flex flex-col bg-background', className)}>
       <header className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card">
         <Button
           variant="ghost"

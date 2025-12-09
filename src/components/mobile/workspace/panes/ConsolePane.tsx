@@ -109,7 +109,7 @@ export function ConsolePane({ projectId, projectPath, onOutput }: ConsolePanePro
 
   return (
     <div
-      className="h-full flex flex-col"
+      data-testid="pane-console" className="h-full flex flex-col"
       style={{ backgroundColor: 'var(--mobile-bg-primary)' }}
     >
       {/* Terminal Header */}

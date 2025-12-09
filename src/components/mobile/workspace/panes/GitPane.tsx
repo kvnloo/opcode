@@ -60,7 +60,7 @@ const GitFileItem = memo(({
   const isLoading = operationLoading === `stage-${file.path}` || operationLoading === `unstage-${file.path}`;
 
   return (
-    <div className="flex items-center gap-2 p-2 rounded-md bg-card border border-border group hover:bg-muted/50 transition-colors">
+    <div data-testid="pane-git" className="flex items-center gap-2 p-2 rounded-md bg-card border border-border group hover:bg-muted/50 transition-colors">
       <div className={cn("flex-shrink-0", STATUS_ICONS[file.status].color)}>
         <StatusIcon className="w-4 h-4" />
       </div>

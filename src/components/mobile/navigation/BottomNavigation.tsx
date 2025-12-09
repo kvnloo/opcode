@@ -23,6 +23,7 @@ export function BottomNavigation({ active, onChange }: BottomNavigationProps) {
     <nav
       className="flex items-center justify-around bg-card border-t border-border py-2"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      data-testid="bottom-navigation"
     >
       {tabs.map((tab) => {
         const isActive = active === tab.id;
@@ -30,6 +31,13 @@ export function BottomNavigation({ active, onChange }: BottomNavigationProps) {
           <button
             key={tab.id}
             onClick={() => handleTabPress(tab.id)}
+            onTouchStart={(e) => {
+              // Handle touch events explicitly for Android WebView
+              // Prevent default to avoid double-firing with onClick on desktop
+              e.preventDefault();
+              handleTabPress(tab.id);
+            }}
+            data-testid={`nav-${tab.id}`}
             className={`
               flex flex-col items-center justify-center
               p-2 rounded-lg transition-all duration-200

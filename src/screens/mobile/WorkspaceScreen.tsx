@@ -92,7 +92,7 @@ export function WorkspaceScreen({ projectId, projectName, projectPath, onBack }:
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div data-testid="screen-workspace" className="h-screen flex flex-col bg-background">
       {/* Header */}
       <WorkspaceHeader
         projectName={projectName}
@@ -206,6 +206,7 @@ function WorkspaceToolbar({ activePane, onPaneChange }: WorkspaceToolbarProps) {
     <nav
       className="flex items-center justify-around bg-card border-t border-border py-2"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      data-testid="workspace-toolbar"
     >
       {WORKSPACE_PANES.map((pane) => {
         const isActive = activePane === pane.id;
@@ -215,6 +216,7 @@ function WorkspaceToolbar({ activePane, onPaneChange }: WorkspaceToolbarProps) {
           <button
             key={pane.id}
             onClick={() => onPaneChange(pane.id)}
+            data-testid={`workspace-${pane.id}`}
             className={`
               flex flex-col items-center justify-center
               p-2 rounded-lg transition-all duration-200

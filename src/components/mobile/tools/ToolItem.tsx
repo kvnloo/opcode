@@ -19,8 +19,13 @@ export function ToolItem({ tool, onClick }: ToolItemProps) {
   return (
     <button
       onClick={onClick}
+      onTouchStart={(e) => {
+        // Handle touch events explicitly for Android WebView
+        e.preventDefault();
+        onClick?.();
+      }}
       data-testid={`tool-${tool.id}`}
-      className="w-full flex items-start gap-3 p-3 hover:bg-muted rounded-lg transition-colors text-left"
+      className="w-full flex items-start gap-3 p-3 hover:bg-muted active:bg-muted/80 rounded-lg transition-colors text-left"
     >
       <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
         <Icon size={18} className="text-muted-foreground" />

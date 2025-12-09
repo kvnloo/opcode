@@ -1,5 +1,5 @@
 use tokio::sync::mpsc;
-use tauri::Manager;
+use tauri::Emitter;
 
 pub struct TerminalBridge {
     tx: mpsc::Sender<Vec<u8>>,

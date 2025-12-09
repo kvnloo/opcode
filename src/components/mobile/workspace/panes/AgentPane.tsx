@@ -90,7 +90,7 @@ export function AgentPane({
   };
 
   return (
-    <div className={cn('flex flex-col h-full bg-background', className)}>
+    <div data-testid="pane-agent" className={cn('flex flex-col h-full bg-background', className)}>
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-4">

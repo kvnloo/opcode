@@ -160,7 +160,7 @@ tsconfig.json`;
   };
 
   return (
-    <div className={cn('h-full flex flex-col bg-zinc-900', className)}>
+    <div data-testid="pane-shell" className={cn('h-full flex flex-col bg-zinc-900', className)}>
       {/* Header */}
       <header className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 bg-zinc-900">
         <Button

@@ -18,6 +18,7 @@ export default defineConfig({
       '.idea',
       '.git',
       '.cache',
+      'tests/e2e/**/*', // E2E tests should run with WebdriverIO, not Vitest
     ],
     server: {
       deps: {

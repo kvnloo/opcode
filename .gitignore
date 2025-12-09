@@ -37,3 +37,7 @@ CLAUDE.md
 .claude/
 
 .env
+
+# Visual verification screenshots and evidence
+screenshots/
+claudedocs/06-testing/visual-evidence/

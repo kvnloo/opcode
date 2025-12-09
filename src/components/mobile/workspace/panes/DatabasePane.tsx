@@ -335,7 +335,7 @@ export function DatabasePane({ projectId: _projectId, onBack, className }: Datab
   }, []);
 
   return (
-    <div className={cn('h-full flex flex-col bg-background', className)}>
+    <div data-testid="pane-database" className={cn('h-full flex flex-col bg-background', className)}>
       {/* Header */}
       <header className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card">
         <Button

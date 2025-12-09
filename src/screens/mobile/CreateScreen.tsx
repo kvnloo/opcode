@@ -9,11 +9,13 @@ import {
   Database,
   ArrowRight,
   Loader2,
-  CheckCircle
+  CheckCircle,
+  Rocket
 } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 type ProjectType = 'web' | 'api' | 'mobile' | 'fullstack' | 'custom';
 
@@ -73,6 +75,7 @@ export function CreateScreen() {
   const [creationProgress, setCreationProgress] = useState(0);
   const [createdProject, setCreatedProject] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const { setProject } = useWorkspaceStore();
 
   // Analyze description and suggest templates
   const analyzeDescription = useCallback(async () => {
@@ -96,6 +99,7 @@ export function CreateScreen() {
       setSuggestedTemplates(suggested.length > 0 ? suggested : templates);
       setStep('template');
     } catch (err) {
+      console.warn('Backend analysis failed, using fallback:', err);
       // Fallback to keyword matching if backend fails
       const keywords = description.toLowerCase();
       const suggested = templates.filter(t =>
@@ -136,7 +140,25 @@ export function CreateScreen() {
       setCreatedProject(project);
       setStep('done');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create project');
+      console.error('Project creation failed:', err);
+
+      // Enhanced error handling - extract detailed error message
+      let errorMessage = 'Failed to create project';
+
+      if (typeof err === 'string') {
+        errorMessage = err;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (err && typeof err === 'object' && 'message' in err) {
+        errorMessage = String((err as any).message);
+      }
+
+      // Add platform-specific hints
+      if (errorMessage.includes('permission') || errorMessage.includes('access')) {
+        errorMessage += '\n\nThis may be a file permission issue on Android. Please check app permissions.';
+      }
+
+      setError(errorMessage);
       setStep('template');
     }
   }, [selectedTemplate, projectName, description]);
@@ -148,12 +170,44 @@ export function CreateScreen() {
     setProjectName(name || 'my-project');
   }, [description]);
 
+  // WORKAROUND: Load demo project to bypass broken creation flow
+  const handleLoadDemoProject = useCallback(() => {
+    // Set mock project data in workspace store
+    setProject({
+      id: 'demo-project-' + Date.now(),
+      name: 'Demo Project (Workaround)',
+      path: '/demo/project/path'
+    });
+
+    // Switch to Apps tab to show the workspace
+    // Use multiple methods to ensure navigation works
+    window.dispatchEvent(new CustomEvent('navigate-to-apps'));
+
+    // Also try direct window navigation as fallback
+    setTimeout(() => {
+      const event = new CustomEvent('navigate-to-apps', { bubbles: true });
+      document.dispatchEvent(event);
+    }, 100);
+  }, [setProject]);
+
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div data-testid="screen-create" className="flex flex-col h-full bg-background pb-20">
       {/* Header */}
-      <header className="flex items-center gap-3 p-4 border-b border-border">
-        <Sparkles className="w-6 h-6 text-primary" />
-        <h1 className="text-xl font-semibold">Create</h1>
+      <header className="flex flex-col gap-2 p-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <Sparkles className="w-6 h-6 text-primary" />
+          <h1 className="text-xl font-semibold">Create</h1>
+        </div>
+
+        {/* WORKAROUND: Demo Project Button */}
+        <HapticButton
+          className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-md flex items-center justify-center gap-2"
+          onClick={handleLoadDemoProject}
+          aria-label="Load demo project (workaround)"
+        >
+          <Rocket className="w-4 h-4" />
+          <span>🚨 Dev: Load Demo Project (Bypass Broken Creation)</span>
+        </HapticButton>
       </header>
 
       <AnimatePresence mode="wait">
@@ -274,7 +328,9 @@ export function CreateScreen() {
                 />
 
                 {error && (
-                  <p className="text-sm text-destructive">{error}</p>
+                  <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                    <p className="text-sm text-destructive whitespace-pre-line">{error}</p>
+                  </div>
                 )}
 
                 <HapticButton

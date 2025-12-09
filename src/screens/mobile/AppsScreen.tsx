@@ -88,10 +88,13 @@ export function AppsScreen() {
   // Otherwise, show the apps list
   return (
     <div
+      data-testid="screen-apps"
       className="h-full flex flex-col mobile-safe-area-inset"
       style={{
         backgroundColor: 'var(--mobile-bg-primary)',
-        padding: 'var(--mobile-layout-padding-screen)'
+        padding: 'var(--mobile-layout-padding-screen)',
+        minHeight: '100vh',
+        width: '100%'
       }}
     >
       {/* Header - Pixel-perfect header matching Replit specs */}

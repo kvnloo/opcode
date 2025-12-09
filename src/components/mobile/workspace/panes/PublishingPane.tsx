@@ -84,7 +84,7 @@ export function PublishingPane({
   const canPublish = isAvailable && subdomain.trim().length > 0 && publishStatus !== 'publishing';
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div data-testid="pane-publishing" className="flex flex-col h-full bg-background">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-3">

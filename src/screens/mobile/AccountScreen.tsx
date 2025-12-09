@@ -15,7 +15,8 @@ export function AccountScreen() {
 
   return (
     <div
-      className="h-full flex flex-col mobile-safe-area-inset"
+      data-testid="screen-account"
+      className="h-full flex flex-col mobile-safe-area-inset pb-20"
       style={{
         backgroundColor: 'var(--mobile-bg-primary)'
       }}

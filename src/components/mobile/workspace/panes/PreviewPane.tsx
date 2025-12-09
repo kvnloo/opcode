@@ -133,7 +133,7 @@ export function PreviewPane({
 
   return (
     <div
-      className={cn('flex flex-col h-full', className)}
+      data-testid="pane-preview" className={cn('flex flex-col h-full', className)}
       style={{ backgroundColor: 'var(--mobile-bg-primary)' }}
     >
       {/* Header Section */}

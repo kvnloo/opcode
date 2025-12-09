@@ -88,7 +88,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } catch (error) {
         console.error('Failed to load theme settings:', error);
       } finally {
-        setIsLoading(false);
+        // Check if we're in a browser environment before updating state
+        if (typeof window !== 'undefined') {
+          setIsLoading(false);
+        }
       }
     };
 

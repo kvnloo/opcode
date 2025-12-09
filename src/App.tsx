@@ -25,6 +25,11 @@ import { TabContent } from "@/components/TabContent";
 import { useTabState } from "@/hooks/useTabState";
 import { AnalyticsConsentBanner } from "@/components/AnalyticsConsent";
 import { useAppLifecycle, useTrackEvent } from "@/hooks";
+import { usePlatform } from "@/hooks/mobile/usePlatform";
+import { AppsScreen } from "@/screens/mobile/AppsScreen";
+import { CreateScreen } from "@/screens/mobile/CreateScreen";
+import { AccountScreen } from "@/screens/mobile/AccountScreen";
+import { BottomNavigation } from "@/components/mobile/navigation/BottomNavigation";
 
 type View = 
   | "welcome" 
@@ -61,7 +66,29 @@ function AppContent() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [projectForSettings, setProjectForSettings] = useState<Project | null>(null);
   const [previousView] = useState<View>("welcome");
-  
+
+  // Platform detection for mobile UI
+  const platform = usePlatform();
+  const isMobile = platform === 'mobile' || platform === 'tablet';
+  const [mobileTab, setMobileTab] = useState<'apps' | 'create' | 'account'>('apps');
+
+  // Listen for navigation events (e.g., from demo project workaround)
+  useEffect(() => {
+    const handleNavigateToApps = () => {
+      console.log('[App.tsx] navigate-to-apps event received, switching to apps tab');
+      setMobileTab('apps');
+    };
+
+    // Listen on both window and document to catch all events
+    window.addEventListener('navigate-to-apps', handleNavigateToApps);
+    document.addEventListener('navigate-to-apps', handleNavigateToApps);
+
+    return () => {
+      window.removeEventListener('navigate-to-apps', handleNavigateToApps);
+      document.removeEventListener('navigate-to-apps', handleNavigateToApps);
+    };
+  }, []);
+
   // Initialize analytics lifecycle tracking
   useAppLifecycle();
   const trackEvent = useTrackEvent();
@@ -227,6 +254,27 @@ function AppContent() {
 
 
   const renderContent = () => {
+    // Mobile UI for Android/iOS
+    if (isMobile) {
+      return (
+        <div
+          className="h-full flex flex-col"
+          style={{
+            backgroundColor: 'var(--mobile-bg-primary, #0F1419)',
+            paddingTop: 'env(safe-area-inset-top)'
+          }}
+        >
+          <div className="flex-1 overflow-auto">
+            {mobileTab === 'apps' && <AppsScreen />}
+            {mobileTab === 'create' && <CreateScreen />}
+            {mobileTab === 'account' && <AccountScreen />}
+          </div>
+          <BottomNavigation active={mobileTab} onChange={setMobileTab} />
+        </div>
+      );
+    }
+
+    // Desktop UI
     switch (view) {
       case "welcome":
         return (
@@ -371,15 +419,17 @@ function AppContent() {
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Custom Titlebar */}
-      <CustomTitlebar
-        onAgentsClick={() => createAgentsTab()}
-        onUsageClick={() => createUsageTab()}
-        onClaudeClick={() => createClaudeMdTab()}
-        onMCPClick={() => createMCPTab()}
-        onSettingsClick={() => createSettingsTab()}
-        onInfoClick={() => setShowNFO(true)}
-      />
+      {/* Custom Titlebar - Desktop Only */}
+      {!isMobile && (
+        <CustomTitlebar
+          onAgentsClick={() => createAgentsTab()}
+          onUsageClick={() => createUsageTab()}
+          onClaudeClick={() => createClaudeMdTab()}
+          onMCPClick={() => createMCPTab()}
+          onSettingsClick={() => createSettingsTab()}
+          onInfoClick={() => setShowNFO(true)}
+        />
+      )}
       
       {/* Topbar - Commented out since navigation moved to titlebar */}
       {/* <Topbar
@@ -393,9 +443,9 @@ function AppContent() {
       
       {/* Analytics Consent Banner */}
       <AnalyticsConsentBanner />
-      
+
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className={`flex-1 ${isMobile ? 'overflow-auto' : 'overflow-hidden'}`}>
         {renderContent()}
       </div>
       

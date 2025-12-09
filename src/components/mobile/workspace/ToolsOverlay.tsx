@@ -106,6 +106,7 @@ export function ToolsOverlay({ isOpen, onClose, onToolSelect, onSearch }: ToolsO
 
           {/* Slide-up Panel */}
           <motion.div
+            data-testid="tools-overlay"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}

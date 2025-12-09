@@ -2,5 +2,11 @@
     <!-- Base application theme. -->
     <style name="Theme.claudia" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
+        <!-- Edge-to-edge display: allow content to extend behind status bar -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:fitsSystemWindows">false</item>
+        <!-- Status bar appearance -->
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

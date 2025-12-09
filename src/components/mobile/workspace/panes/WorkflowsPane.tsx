@@ -35,7 +35,7 @@ export function WorkflowsPane({ projectId: _projectId, onBack, className }: Work
   };
 
   return (
-    <div className={cn('h-full flex flex-col bg-background', className)}>
+    <div data-testid="pane-workflows" className={cn('h-full flex flex-col bg-background', className)}>
       <header className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card">
         <Button
           variant="ghost"

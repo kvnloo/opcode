@@ -108,6 +108,7 @@ export function SharePane({
 
   return (
     <div
+      data-testid="pane-share"
       className="h-full overflow-y-auto"
       style={{ backgroundColor: 'var(--mobile-bg-primary)' }}
     >

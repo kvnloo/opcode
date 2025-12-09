@@ -2,6 +2,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use tauri::Manager;
 
 /// Represents an AI-generated project
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,14 +46,18 @@ pub async fn analyze_project_description(description: String) -> Result<Vec<Stri
 /// Creates a new AI project
 #[tauri::command]
 pub async fn create_ai_project(
+    app_handle: tauri::AppHandle,
     name: String,
     description: Option<String>,
     template: String,
 ) -> Result<AIProject, String> {
-    let home_dir = dirs::home_dir()
-        .ok_or("Could not find home directory")?;
+    // Use app_data_dir for Android compatibility
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Could not access app data directory: {}", e))?;
 
-    let projects_dir = home_dir.join(".claude").join("projects");
+    let projects_dir = app_data_dir.join("projects");
     let project_dir = projects_dir.join(&name);
 
     // Create project directory

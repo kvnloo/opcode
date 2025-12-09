@@ -1,4 +1,4 @@
-use tauri::command;
+use tauri::{command, Emitter};
 use serde::{Deserialize, Serialize};
 use super::ssh::SshClient;
 use std::sync::Arc;
