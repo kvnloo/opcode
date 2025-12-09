@@ -8,6 +8,12 @@ import { MultiplayerPane } from './panes/MultiplayerPane';
 import { SecretsPane } from './panes/SecretsPane';
 import { SecurityScannerPane } from './panes/SecurityScannerPane';
 import { WorkflowsPane } from './panes/WorkflowsPane';
+// Phase 2: New pane components
+import { AssistantPane } from './panes/AssistantPane';
+import { ShellPane } from './panes/ShellPane';
+import { UserSettingsPane } from './panes/UserSettingsPane';
+import { GitPane } from './panes/GitPane';
+import { DatabasePane } from './panes/DatabasePane';
 
 /**
  * Props interface for tool pane components
@@ -22,6 +28,7 @@ export interface ToolPaneProps {
  * This ensures type-safe routing from tool selection to pane rendering in WorkspaceScreen
  */
 export const TOOL_PANE_REGISTRY: Record<string, ComponentType<ToolPaneProps>> = {
+  // Phase 1: Original tool panes (9)
   'storage': AppStoragePane,
   'auth': AuthUsersPane,
   'developer': DevToolsPane,
@@ -31,6 +38,12 @@ export const TOOL_PANE_REGISTRY: Record<string, ComponentType<ToolPaneProps>> = 
   'secrets': SecretsPane,
   'security': SecurityScannerPane,
   'workflows': WorkflowsPane,
+  // Phase 2: New tool panes (5)
+  'assistant': AssistantPane,
+  'shell': ShellPane,
+  'settings': UserSettingsPane,
+  'git': GitPane,
+  'database': DatabasePane,
 };
 
 /**
