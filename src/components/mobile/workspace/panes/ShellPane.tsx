@@ -15,12 +15,12 @@ interface HistoryEntry {
 
 interface ShellPaneProps {
   projectId: string;
-  projectPath?: string;
+  projectPath: string;
   onBack: () => void;
   className?: string;
 }
 
-export function ShellPane({ projectId, projectPath = `/projects/${projectId}`, onBack, className }: ShellPaneProps) {
+export function ShellPane({ projectId, projectPath, onBack, className }: ShellPaneProps) {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [input, setInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);

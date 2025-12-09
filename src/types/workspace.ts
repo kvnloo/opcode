@@ -21,15 +21,27 @@ export type ToolPaneId =
 // All pane types combined
 export type AnyPaneId = WorkspacePaneId | ToolPaneId;
 
-// Tool pane component props
-export interface ToolPaneProps {
+// Base props for all tool pane components
+export interface BaseToolPaneProps {
   projectId: string;
   onBack: () => void;
+  className?: string;
 }
 
-// Workspace pane component props
+// Tool pane component props (standard)
+export interface ToolPaneProps extends BaseToolPaneProps {}
+
+// Tool pane props with optional project path (for Assistant, Shell, etc.)
+export interface ToolPanePropsWithPath extends BaseToolPaneProps {
+  projectPath?: string;
+}
+
+// Workspace pane component props (for WorkspaceScreen)
 export interface WorkspacePaneProps {
   projectId: string;
+  projectName: string;
+  projectPath: string;
+  onBack: () => void;
 }
 
 // Navigation state

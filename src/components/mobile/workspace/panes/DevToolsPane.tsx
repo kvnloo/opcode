@@ -20,9 +20,9 @@ interface DevToolsPaneProps {
   className?: string;
 }
 
-export function DevToolsPane({ projectId, onBack, className }: DevToolsPaneProps) {
+export function DevToolsPane({ projectId: _projectId, onBack, className }: DevToolsPaneProps) {
   const [activeTab, setActiveTab] = useState<'console' | 'network' | 'performance'>('console');
-  const [logs, setLogs] = useState<LogEntry[]>([
+  const [logs, _setLogs] = useState<LogEntry[]>([
     { id: '1', timestamp: new Date(), level: 'info', message: 'Server started on port 3000' },
     { id: '2', timestamp: new Date(), level: 'success', message: 'Connected to database' },
     { id: '3', timestamp: new Date(), level: 'warn', message: 'Deprecated API usage detected' },

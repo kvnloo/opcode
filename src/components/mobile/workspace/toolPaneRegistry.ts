@@ -16,18 +16,29 @@ import { GitPane } from './panes/GitPane';
 import { DatabasePane } from './panes/DatabasePane';
 
 /**
- * Props interface for tool pane components
- * All tool panes accept an optional className prop for styling
+ * Base props interface for tool pane components
+ * All panes require projectId, onBack, and optional className
  */
-export interface ToolPaneProps {
+export interface BaseToolPaneProps {
+  projectId: string;
+  onBack: () => void;
   className?: string;
 }
 
 /**
+ * Extended tool pane props with optional projectPath
+ * Some panes (AssistantPane, ShellPane) may use projectPath
+ */
+export type ToolPaneProps = BaseToolPaneProps & {
+  projectPath?: string;
+};
+
+/**
  * Registry mapping tool IDs (from ToolsOverlay TOOLS array) to their corresponding pane components
  * This ensures type-safe routing from tool selection to pane rendering in WorkspaceScreen
+ * Uses ComponentType<any> to accommodate varying prop requirements across panes
  */
-export const TOOL_PANE_REGISTRY: Record<string, ComponentType<ToolPaneProps>> = {
+export const TOOL_PANE_REGISTRY: Record<string, ComponentType<any>> = {
   // Phase 1: Original tool panes (9)
   'storage': AppStoragePane,
   'auth': AuthUsersPane,
@@ -60,7 +71,7 @@ export const isToolPane = (toolId: string): boolean => {
  * @param toolId - The tool ID from ToolsOverlay
  * @returns The pane component or null if not found
  */
-export const getToolPane = (toolId: string): ComponentType<ToolPaneProps> | null => {
+export const getToolPane = (toolId: string): ComponentType<any> | null => {
   return TOOL_PANE_REGISTRY[toolId] || null;
 };
 

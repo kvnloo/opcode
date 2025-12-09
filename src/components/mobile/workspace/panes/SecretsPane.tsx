@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Plus, Eye, EyeOff, Trash2, Lock, ChevronLeft } from 'lucide-react';
+import { Plus, Eye, EyeOff, Trash2, ChevronLeft } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
 
@@ -17,7 +17,7 @@ interface SecretsPaneProps {
   className?: string;
 }
 
-export function SecretsPane({ projectId, onBack, className }: SecretsPaneProps) {
+export function SecretsPane({ projectId: _projectId, onBack, className }: SecretsPaneProps) {
   const [secrets, setSecrets] = useState<Secret[]>([
     { id: '1', key: 'API_KEY', value: 'sk-***************', hidden: true },
     { id: '2', key: 'DATABASE_URL', value: 'postgres://...', hidden: true },

@@ -79,6 +79,7 @@ export function AppsScreen() {
       <WorkspaceScreen
         projectId={currentProject.id}
         projectName={currentProject.name}
+        projectPath={currentProject.path || `/projects/${currentProject.id}`}
         onBack={handleWorkspaceBack}
       />
     );

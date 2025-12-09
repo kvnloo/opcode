@@ -1,6 +1,6 @@
 
 import { cn } from '@/lib/utils';
-import { Plug, Github, Database, Cloud, Key, ExternalLink, ChevronLeft } from 'lucide-react';
+import { Github, Database, Cloud, Key, ExternalLink, ChevronLeft } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
 
@@ -19,7 +19,7 @@ interface IntegrationsPaneProps {
   className?: string;
 }
 
-export function IntegrationsPane({ projectId, onBack, className }: IntegrationsPaneProps) {
+export function IntegrationsPane({ projectId: _projectId, onBack, className }: IntegrationsPaneProps) {
   const integrations: Integration[] = [
     {
       id: 'github',

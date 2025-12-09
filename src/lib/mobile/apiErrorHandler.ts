@@ -122,7 +122,7 @@ export async function withTimeout<T>(
   timeoutMs: number,
   errorMessage = 'Operation timed out'
 ): Promise<T> {
-  let timeoutId: NodeJS.Timeout;
+  let timeoutId: NodeJS.Timeout | undefined;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
@@ -133,7 +133,9 @@ export async function withTimeout<T>(
   try {
     return await Promise.race([promise, timeoutPromise]);
   } finally {
-    clearTimeout(timeoutId);
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 
@@ -374,8 +376,6 @@ export function errorToToast(error: unknown, options: {
   onRetry?: () => void;
 } = {}): ToastOptions {
   const { showRetry = false, onRetry } = options;
-  const apiError = handleApiError(error);
-  const category = categorizeError(error);
   const action = getErrorAction(error);
 
   const toast: ToastOptions = {

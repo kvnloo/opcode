@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Users, Plus, Search, Mail, Shield, Trash2, MoreVertical, ChevronLeft } from 'lucide-react';
+import { Users, Search, Mail, MoreVertical, ChevronLeft } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
 
@@ -18,9 +18,9 @@ interface AuthUsersPaneProps {
   className?: string;
 }
 
-export function AuthUsersPane({ projectId, onBack, className }: AuthUsersPaneProps) {
+export function AuthUsersPane({ projectId: _projectId, onBack, className }: AuthUsersPaneProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [users, setUsers] = useState<User[]>([
+  const [users, _setUsers] = useState<User[]>([
     { id: '1', email: 'admin@example.com', role: 'admin', status: 'active', lastActive: new Date() },
     { id: '2', email: 'editor@example.com', role: 'editor', status: 'active', lastActive: new Date() },
     { id: '3', email: 'viewer@example.com', role: 'viewer', status: 'invited' },

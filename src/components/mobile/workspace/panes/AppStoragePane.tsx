@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { HardDrive, Upload, Download, Trash2, File, Image, Video, Music, FileText, ChevronLeft } from 'lucide-react';
+import { Upload, Download, Trash2, File, Image, Video, Music, FileText, ChevronLeft } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
 
@@ -19,8 +19,8 @@ interface AppStoragePaneProps {
   className?: string;
 }
 
-export function AppStoragePane({ projectId, onBack, className }: AppStoragePaneProps) {
-  const [files, setFiles] = useState<StorageFile[]>([
+export function AppStoragePane({ projectId: _projectId, onBack, className }: AppStoragePaneProps) {
+  const [files, _setFiles] = useState<StorageFile[]>([
     { id: '1', name: 'avatar.png', type: 'image', size: 245760, uploadedAt: new Date(), url: '#' },
     { id: '2', name: 'demo.mp4', type: 'video', size: 5242880, uploadedAt: new Date(), url: '#' },
     { id: '3', name: 'report.pdf', type: 'document', size: 102400, uploadedAt: new Date(), url: '#' },

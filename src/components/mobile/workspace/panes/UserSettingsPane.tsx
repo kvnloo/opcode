@@ -20,7 +20,7 @@ interface UserSettingsPaneProps {
   className?: string;
 }
 
-export function UserSettingsPane({ projectId, onBack, className }: UserSettingsPaneProps) {
+export function UserSettingsPane({ projectId: _projectId, onBack, className }: UserSettingsPaneProps) {
   const [settings, setSettings] = useState<UserSettings>({
     theme: 'dark',
     fontSize: 14,

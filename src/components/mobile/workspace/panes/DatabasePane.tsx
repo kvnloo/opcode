@@ -175,7 +175,7 @@ const QueryResultRow = memo(({
 ));
 QueryResultRow.displayName = 'QueryResultRow';
 
-export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps) {
+export function DatabasePane({ projectId: _projectId, onBack, className }: DatabasePaneProps) {
   // Check if running in Tauri environment (done inside component to allow testing)
   const isTauriEnvironment = typeof window !== 'undefined' && (window as any).__TAURI__;
   const [isConnected, setIsConnected] = useState(true);

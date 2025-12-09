@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, ChevronLeft } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, RefreshCw, ChevronLeft } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
 
@@ -22,10 +22,10 @@ interface SecurityScannerPaneProps {
   className?: string;
 }
 
-export function SecurityScannerPane({ projectId, onBack, className }: SecurityScannerPaneProps) {
+export function SecurityScannerPane({ projectId: _projectId, onBack, className }: SecurityScannerPaneProps) {
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState(new Date());
-  const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([
+  const [vulnerabilities, _setVulnerabilities] = useState<Vulnerability[]>([
     {
       id: '1',
       title: 'SQL Injection vulnerability',

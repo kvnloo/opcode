@@ -20,7 +20,7 @@ interface AssistantPaneProps {
   className?: string;
 }
 
-export function AssistantPane({ projectId, projectPath, onBack, className }: AssistantPaneProps) {
+export function AssistantPane({ projectId: _projectId, projectPath, onBack, className }: AssistantPaneProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -66,7 +66,7 @@ export function AssistantPane({ projectId, projectPath, onBack, className }: Ass
         unlistenRefs.current.push(unlistenOutput);
 
         // Listen for session completion
-        const unlistenCompleted = await listen('claude-session-completed', (event: any) => {
+        const unlistenCompleted = await listen('claude-session-completed', (_event: any) => {
           if (currentAssistantMessage.trim()) {
             setMessages(prev => [
               ...prev,

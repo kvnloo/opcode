@@ -4,3 +4,4 @@
 
 export * from './workspace';
 export * from './hooks';
+export * from './git';

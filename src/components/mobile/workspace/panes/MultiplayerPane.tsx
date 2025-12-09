@@ -27,11 +27,11 @@ interface MultiplayerPaneProps {
   className?: string;
 }
 
-export function MultiplayerPane({ projectId, onBack, className }: MultiplayerPaneProps) {
+export function MultiplayerPane({ projectId: _projectId, onBack, className }: MultiplayerPaneProps) {
   const [activeTab, setActiveTab] = useState<'participants' | 'chat' | 'voice'>('participants');
   const [micOn, setMicOn] = useState(false);
   const [videoOn, setVideoOn] = useState(false);
-  const [participants, setParticipants] = useState<Participant[]>([
+  const [participants, _setParticipants] = useState<Participant[]>([
     { id: '1', name: 'You', status: 'active', color: '#10b981' },
     { id: '2', name: 'Alice', status: 'active', color: '#3b82f6' },
     { id: '3', name: 'Bob', status: 'idle', color: '#f59e0b' },

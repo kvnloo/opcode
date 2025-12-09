@@ -17,6 +17,12 @@ interface HapticButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
   disableHaptics?: boolean;
 
   /**
+   * Visual variant for the button
+   * @default undefined (uses className styling)
+   */
+  variant?: 'default' | 'outline' | 'ghost' | 'link' | 'destructive' | 'secondary' | string;
+
+  /**
    * Additional class names
    */
   className?: string;
@@ -47,6 +53,7 @@ export const HapticButton = forwardRef<HTMLButtonElement, HapticButtonProps>(
     {
       hapticType = 'medium',
       disableHaptics = false,
+      variant,
       className,
       onClick,
       onMouseDown,

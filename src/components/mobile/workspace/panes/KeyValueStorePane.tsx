@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Database, Plus, Search, Trash2, Edit2, ChevronLeft } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, ChevronLeft } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
 
@@ -18,9 +18,9 @@ interface KeyValueStorePaneProps {
   className?: string;
 }
 
-export function KeyValueStorePane({ projectId, onBack, className }: KeyValueStorePaneProps) {
+export function KeyValueStorePane({ projectId: _projectId, onBack, className }: KeyValueStorePaneProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [items, setItems] = useState<KeyValue[]>([
+  const [items, _setItems] = useState<KeyValue[]>([
     { id: '1', key: 'user:preferences', value: '{"theme":"dark"}', type: 'json', updatedAt: new Date() },
     { id: '2', key: 'session:count', value: '42', type: 'number', updatedAt: new Date() },
     { id: '3', key: 'feature:enabled', value: 'true', type: 'boolean', updatedAt: new Date() },

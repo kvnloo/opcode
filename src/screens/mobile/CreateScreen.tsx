@@ -182,8 +182,7 @@ export function CreateScreen() {
             />
 
             <HapticButton
-              variant="primary"
-              className="mt-4 w-full py-3"
+              className="mt-4 w-full py-3 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={analyzeDescription}
               disabled={!description.trim() || isAnalyzing}
               aria-label="Continue to template selection"
@@ -225,8 +224,8 @@ export function CreateScreen() {
               {suggestedTemplates.map((template) => (
                 <HapticButton
                   key={template.id}
-                  variant="ghost"
                   className={cn(
+                    'hover:bg-accent hover:text-accent-foreground',
                     'w-full flex items-start gap-3 p-4 rounded-lg border text-left',
                     selectedTemplate?.id === template.id
                       ? 'border-primary bg-primary/10'
@@ -279,8 +278,7 @@ export function CreateScreen() {
                 )}
 
                 <HapticButton
-                  variant="primary"
-                  className="w-full py-3"
+                  className="w-full py-3 bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={handleCreateProject}
                   disabled={!projectName.trim()}
                   aria-label="Create project"
@@ -337,8 +335,7 @@ export function CreateScreen() {
             </p>
 
             <HapticButton
-              variant="primary"
-              className="w-full max-w-xs py-3"
+              className="w-full max-w-xs py-3 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() => {
                 // Navigate to project - would use router in production
                 console.log('Opening project:', createdProject);

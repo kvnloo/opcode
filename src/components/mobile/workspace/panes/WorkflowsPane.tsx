@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Play, Plus, ChevronDown, ChevronRight, Search, ChevronLeft } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Search, ChevronLeft } from 'lucide-react';
 import { HapticButton } from '@/components/mobile/common/HapticButton';
 import { Button } from '@/components/ui/button';
 
@@ -18,9 +18,9 @@ interface WorkflowsPaneProps {
   className?: string;
 }
 
-export function WorkflowsPane({ projectId, onBack, className }: WorkflowsPaneProps) {
+export function WorkflowsPane({ projectId: _projectId, onBack, className }: WorkflowsPaneProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [workflows, setWorkflows] = useState<Workflow[]>([
+  const [workflows, _setWorkflows] = useState<Workflow[]>([
     { id: '1', name: 'Project', type: 'run-button', status: 'generated' },
     { id: '2', name: 'Start Game', type: 'run-button', status: 'generated' },
   ]);
