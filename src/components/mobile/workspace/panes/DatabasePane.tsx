@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Database,
@@ -96,6 +96,85 @@ const MOCK_QUERY_RESULT: QueryResult = {
   ],
 };
 
+// Memoized table button component
+const TableButton = memo(({
+  table,
+  isSelected,
+  onClick
+}: {
+  table: string;
+  isSelected: boolean;
+  onClick: () => void
+}) => (
+  <HapticButton
+    className={cn(
+      'flex items-center gap-2 px-3 py-2 rounded-md border transition-colors',
+      isSelected
+        ? 'bg-primary text-primary-foreground border-primary'
+        : 'bg-card border-border hover:bg-accent hover:text-accent-foreground'
+    )}
+    onClick={onClick}
+  >
+    <Table2 className="w-4 h-4" />
+    <span className="font-mono text-sm whitespace-nowrap">{table}</span>
+  </HapticButton>
+));
+TableButton.displayName = 'TableButton';
+
+// Memoized column row component
+const ColumnRow = memo(({
+  column,
+  index
+}: {
+  column: { name: string; type: string; nullable: boolean };
+  index: number
+}) => (
+  <tr
+    className={cn(
+      'border-t border-border',
+      index % 2 === 1 && 'bg-muted/30'
+    )}
+  >
+    <td className="px-4 py-2 font-mono">{column.name}</td>
+    <td className="px-4 py-2 font-mono text-muted-foreground">
+      {column.type}
+    </td>
+    <td className="px-4 py-2">
+      {column.nullable ? (
+        <span className="text-muted-foreground">Yes</span>
+      ) : (
+        <span className="text-primary font-medium">No</span>
+      )}
+    </td>
+  </tr>
+));
+ColumnRow.displayName = 'ColumnRow';
+
+// Memoized query result row component
+const QueryResultRow = memo(({
+  row,
+  columns,
+  index
+}: {
+  row: Record<string, any>;
+  columns: string[];
+  index: number
+}) => (
+  <tr
+    className={cn(
+      'border-t border-border',
+      index % 2 === 1 && 'bg-muted/30'
+    )}
+  >
+    {columns.map((col) => (
+      <td key={col} className="px-3 py-2 font-mono text-xs whitespace-nowrap">
+        {row[col]}
+      </td>
+    ))}
+  </tr>
+));
+QueryResultRow.displayName = 'QueryResultRow';
+
 export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps) {
   // Check if running in Tauri environment (done inside component to allow testing)
   const isTauriEnvironment = typeof window !== 'undefined' && (window as any).__TAURI__;
@@ -110,21 +189,12 @@ export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load tables on mount
-  useEffect(() => {
-    loadTables();
-  }, []);
+  // Memoize filtered tables
+  const filteredTables = useMemo(() => {
+    return tables.filter(t => !t.startsWith('sqlite_'));
+  }, [tables]);
 
-  // Load table schema when selection changes
-  useEffect(() => {
-    if (selectedTable) {
-      loadTableSchema(selectedTable);
-    } else {
-      setTableSchema(null);
-    }
-  }, [selectedTable]);
-
-  const loadTables = async () => {
+  const loadTables = useCallback(async () => {
     if (!isTauriEnvironment) {
       // Use mock data for non-Tauri environments
       setTables(MOCK_TABLES);
@@ -156,9 +226,9 @@ export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isTauriEnvironment]);
 
-  const loadTableSchema = async (tableName: string) => {
+  const loadTableSchema = useCallback(async (tableName: string) => {
     if (!isTauriEnvironment) {
       // Use mock schema for non-Tauri environments
       setTableSchema(MOCK_SCHEMAS[tableName] || null);
@@ -195,18 +265,32 @@ export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isTauriEnvironment]);
 
-  const handleRefresh = async () => {
+  // Load tables on mount
+  useEffect(() => {
+    loadTables();
+  }, [loadTables]);
+
+  // Load table schema when selection changes
+  useEffect(() => {
+    if (selectedTable) {
+      loadTableSchema(selectedTable);
+    } else {
+      setTableSchema(null);
+    }
+  }, [selectedTable, loadTableSchema]);
+
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await loadTables();
     if (selectedTable) {
       await loadTableSchema(selectedTable);
     }
     setTimeout(() => setIsRefreshing(false), 500);
-  };
+  }, [loadTables, selectedTable, loadTableSchema]);
 
-  const handleRunQuery = async () => {
+  const handleRunQuery = useCallback(async () => {
     if (!queryInput.trim()) {
       setError('Please enter a SQL query');
       return;
@@ -241,9 +325,14 @@ export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [queryInput, isTauriEnvironment]);
 
   const selectedSchema = tableSchema;
+
+  // Memoized table selection handler
+  const handleTableSelect = useCallback((table: string) => {
+    setSelectedTable(table);
+  }, []);
 
   return (
     <div className={cn('h-full flex flex-col bg-background', className)}>
@@ -297,20 +386,13 @@ export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps
             <div className="px-4 pb-2 text-sm text-red-500">{error}</div>
           )}
           <div className="flex gap-2 px-4 pb-3 overflow-x-auto">
-            {tables.map((table) => (
-              <HapticButton
+            {filteredTables.map((table) => (
+              <TableButton
                 key={table}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-md border transition-colors',
-                  selectedTable === table
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-card border-border hover:bg-accent hover:text-accent-foreground'
-                )}
-                onClick={() => setSelectedTable(table)}
-              >
-                <Table2 className="w-4 h-4" />
-                <span className="font-mono text-sm whitespace-nowrap">{table}</span>
-              </HapticButton>
+                table={table}
+                isSelected={selectedTable === table}
+                onClick={() => handleTableSelect(table)}
+              />
             ))}
           </div>
         </div>
@@ -344,25 +426,11 @@ export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps
                   </thead>
                   <tbody>
                     {selectedSchema.columns.map((column, idx) => (
-                      <tr
+                      <ColumnRow
                         key={column.name}
-                        className={cn(
-                          'border-t border-border',
-                          idx % 2 === 1 && 'bg-muted/30'
-                        )}
-                      >
-                        <td className="px-4 py-2 font-mono">{column.name}</td>
-                        <td className="px-4 py-2 font-mono text-muted-foreground">
-                          {column.type}
-                        </td>
-                        <td className="px-4 py-2">
-                          {column.nullable ? (
-                            <span className="text-muted-foreground">Yes</span>
-                          ) : (
-                            <span className="text-primary font-medium">No</span>
-                          )}
-                        </td>
-                      </tr>
+                        column={column}
+                        index={idx}
+                      />
                     ))}
                   </tbody>
                 </table>
@@ -445,19 +513,12 @@ export function DatabasePane({ projectId, onBack, className }: DatabasePaneProps
                       </thead>
                       <tbody>
                         {queryResult.rows.map((row, idx) => (
-                          <tr
+                          <QueryResultRow
                             key={idx}
-                            className={cn(
-                              'border-t border-border',
-                              idx % 2 === 1 && 'bg-muted/30'
-                            )}
-                          >
-                            {queryResult.columns.map((col) => (
-                              <td key={col} className="px-3 py-2 font-mono text-xs whitespace-nowrap">
-                                {row[col]}
-                              </td>
-                            ))}
-                          </tr>
+                            row={row}
+                            columns={queryResult.columns}
+                            index={idx}
+                          />
                         ))}
                       </tbody>
                     </table>

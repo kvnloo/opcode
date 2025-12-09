@@ -2,9 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
 // Create mock functions at module level with vi.hoisted
-const { mockInvoke, mockListen } = vi.hoisted(() => ({
+const { mockInvoke, mockListen, mockApi } = vi.hoisted(() => ({
   mockInvoke: vi.fn(),
   mockListen: vi.fn(),
+  mockApi: {
+    listProjects: vi.fn(),
+    getProjectSessions: vi.fn(),
+  },
 }));
 
 // Mock Tauri API modules with hoisted mocks
@@ -16,18 +20,36 @@ vi.mock('@tauri-apps/api/event', () => ({
   listen: mockListen,
 }));
 
-// NOTE: These tests are skipped due to Zustand singleton module caching issues.
-// The stores import their dependencies (api, invoke) at module evaluation time,
-// before Vitest mocks can intercept them. This requires a fundamental redesign
-// to either use factory functions for stores or test without backend mocking.
+// Mock the api module to intercept store calls
+vi.mock('@/lib/api', () => ({
+  api: mockApi,
+}));
+
+// NOTE: These integration tests are currently skipped due to Zustand store module caching.
+//
+// ISSUE: The stores import their dependencies (`api` from `@/lib/api`, `invoke` from `@tauri-apps/api/core`)
+// at module evaluation time, creating a singleton with the real implementations before test mocks can intercept.
+//
+// ATTEMPTED FIX: Using vi.hoisted() to create mocks before modules load, and vi.mock() to intercept imports.
+// However, dynamic imports in tests still load cached modules with real dependencies.
+//
+// SOLUTIONS TO ENABLE THESE TESTS:
+// 1. Dependency Injection: Pass `api` and `invoke` as parameters to store factory functions
+// 2. Module Reset: Use `vi.resetModules()` + `vi.isolateModules()` (but requires synchronous test structure)
+// 3. Integration Tests: Test with real Tauri backend instead of mocking (requires test environment setup)
+// 4. Refactor Stores: Use dependency injection pattern for all external dependencies
+//
+// For now, these tests remain skipped. To enable them, stores need architectural changes for testability.
 // See: https://github.com/pmndrs/zustand/discussions/2001
 describe.skip('API Integration', () => {
   beforeEach(() => {
     // Clear previous mock data
     mockInvoke.mockClear();
     mockListen.mockClear();
+    mockApi.listProjects.mockClear();
+    mockApi.getProjectSessions.mockClear();
 
-    // Set up default mock implementations
+    // Set up default mock implementations for invoke
     mockInvoke.mockImplementation((cmd, args) => {
       switch (cmd) {
         case 'list_projects':
@@ -59,6 +81,23 @@ describe.skip('API Integration', () => {
       }
     });
 
+    // Set up default mock implementations for api module
+    mockApi.listProjects.mockResolvedValue([
+      { id: '1', path: '/path/1', sessions: [], created_at: Date.now() },
+      { id: '2', path: '/path/2', sessions: [], created_at: Date.now() },
+    ]);
+
+    mockApi.getProjectSessions.mockImplementation((projectId: string) =>
+      Promise.resolve([
+        {
+          id: 's1',
+          project_id: projectId,
+          project_path: '/path/1',
+          created_at: Date.now()
+        },
+      ])
+    );
+
     mockListen.mockResolvedValue(() => {});
   });
 
@@ -74,7 +113,7 @@ describe.skip('API Integration', () => {
         await useSessionStore.getState().fetchProjects();
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('list_projects');
+      expect(mockApi.listProjects).toHaveBeenCalled();
 
       const { projects, isLoadingProjects } = useSessionStore.getState();
       expect(projects).toHaveLength(2);
@@ -106,7 +145,7 @@ describe.skip('API Integration', () => {
         await useSessionStore.getState().fetchProjectSessions('1');
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('get_project_sessions', { projectId: '1' });
+      expect(mockApi.getProjectSessions).toHaveBeenCalledWith('1');
 
       const { sessions } = useSessionStore.getState();
       expect(sessions['1']).toHaveLength(1);
@@ -114,7 +153,7 @@ describe.skip('API Integration', () => {
     });
 
     it('handles fetch errors gracefully', async () => {
-      mockInvoke.mockRejectedValueOnce(new Error('Network error'));
+      mockApi.listProjects.mockRejectedValueOnce(new Error('Network error'));
 
       const { useSessionStore } = await import('@/stores/sessionStore');
 
@@ -131,7 +170,7 @@ describe.skip('API Integration', () => {
       const { useSessionStore } = await import('@/stores/sessionStore');
 
       // Set error first
-      mockInvoke.mockRejectedValueOnce(new Error('Test error'));
+      mockApi.listProjects.mockRejectedValueOnce(new Error('Test error'));
 
       await act(async () => {
         await useSessionStore.getState().fetchProjects();
@@ -335,7 +374,7 @@ describe.skip('API Integration', () => {
 
   describe('Error Handling Across Stores', () => {
     it('handles network errors in session store', async () => {
-      mockInvoke.mockRejectedValueOnce(new Error('Network error'));
+      mockApi.listProjects.mockRejectedValueOnce(new Error('Network error'));
 
       const { useSessionStore } = await import('@/stores/sessionStore');
 

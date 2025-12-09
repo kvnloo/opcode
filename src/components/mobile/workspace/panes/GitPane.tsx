@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { cn } from '@/lib/utils';
 import {
   GitBranch,
@@ -44,6 +44,82 @@ const STATUS_MAP: Record<GitFile['status'], ChangedFile['status']> = {
   R: 'modified',
 };
 
+// Memoized Git file item component
+const GitFileItem = memo(({
+  file,
+  operationLoading,
+  onStage,
+  onUnstage
+}: {
+  file: ChangedFile;
+  operationLoading: string | null;
+  onStage?: () => void;
+  onUnstage?: () => void;
+}) => {
+  const StatusIcon = STATUS_ICONS[file.status].icon;
+  const isLoading = operationLoading === `stage-${file.path}` || operationLoading === `unstage-${file.path}`;
+
+  return (
+    <div className="flex items-center gap-2 p-2 rounded-md bg-card border border-border group hover:bg-muted/50 transition-colors">
+      <div className={cn("flex-shrink-0", STATUS_ICONS[file.status].color)}>
+        <StatusIcon className="w-4 h-4" />
+      </div>
+      <span className="flex-1 font-mono text-sm truncate">
+        {file.path}
+      </span>
+      <span className={cn(
+        "text-xs font-semibold flex-shrink-0 w-4",
+        STATUS_ICONS[file.status].color
+      )}>
+        {STATUS_ICONS[file.status].label}
+      </span>
+      {(onStage || onUnstage) && (
+        <HapticButton
+          className="p-1 hover:bg-accent hover:text-accent-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={onStage || onUnstage}
+          disabled={isLoading}
+          aria-label={onStage ? `Stage ${file.path}` : `Unstage ${file.path}`}
+        >
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : onStage ? (
+            <Plus className="w-4 h-4" />
+          ) : (
+            <Minus className="w-4 h-4" />
+          )}
+        </HapticButton>
+      )}
+    </div>
+  );
+});
+GitFileItem.displayName = 'GitFileItem';
+
+// Memoized branch selector item
+const BranchSelectorItem = memo(({
+  branch,
+  isCurrentBranch,
+  onClick
+}: {
+  branch: string;
+  isCurrentBranch: boolean;
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2",
+      isCurrentBranch && "bg-muted"
+    )}
+  >
+    <GitBranch className="w-3 h-3" />
+    <span className="font-mono">{branch}</span>
+    {isCurrentBranch && (
+      <Check className="w-3 h-3 ml-auto text-primary" />
+    )}
+  </button>
+));
+BranchSelectorItem.displayName = 'BranchSelectorItem';
+
 export function GitPane({ projectId, onBack, className }: GitPaneProps) {
   const [currentBranch, setCurrentBranch] = useState('main');
   const [branches, setBranches] = useState<string[]>(['main', 'develop', 'feature/auth']);
@@ -54,16 +130,11 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const unstagedFiles = files.filter(f => !f.staged);
-  const stagedFiles = files.filter(f => f.staged);
+  // Memoize filtered file lists
+  const unstagedFiles = useMemo(() => files.filter(f => !f.staged), [files]);
+  const stagedFiles = useMemo(() => files.filter(f => f.staged), [files]);
 
-  useEffect(() => {
-    loadGitStatus();
-    loadBranches();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
-
-  const loadGitStatus = async () => {
+  const loadGitStatus = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -94,18 +165,23 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
-  const loadBranches = async () => {
+  const loadBranches = useCallback(async () => {
     try {
       const branchList = await gitService.getBranches(projectId);
       setBranches(branchList);
     } catch (err) {
       console.error('Failed to load branches:', err);
     }
-  };
+  }, [projectId]);
 
-  const stageFile = async (path: string) => {
+  useEffect(() => {
+    loadGitStatus();
+    loadBranches();
+  }, [loadGitStatus, loadBranches]);
+
+  const stageFile = useCallback(async (path: string) => {
     try {
       setOperationLoading(`stage-${path}`);
       await gitService.stage(projectId, [path]);
@@ -117,9 +193,9 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
     } finally {
       setOperationLoading(null);
     }
-  };
+  }, [projectId, files]);
 
-  const unstageFile = async (path: string) => {
+  const unstageFile = useCallback(async (path: string) => {
     try {
       setOperationLoading(`unstage-${path}`);
       await gitService.unstage(projectId, [path]);
@@ -131,9 +207,9 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
     } finally {
       setOperationLoading(null);
     }
-  };
+  }, [projectId, files]);
 
-  const handleCommit = async () => {
+  const handleCommit = useCallback(async () => {
     if (!commitMessage || stagedFiles.length === 0) return;
 
     try {
@@ -147,9 +223,9 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
     } finally {
       setOperationLoading(null);
     }
-  };
+  }, [commitMessage, stagedFiles, projectId, files, loadGitStatus]);
 
-  const handlePush = async () => {
+  const handlePush = useCallback(async () => {
     try {
       setOperationLoading('push');
       await gitService.push(projectId);
@@ -159,9 +235,9 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
     } finally {
       setOperationLoading(null);
     }
-  };
+  }, [projectId, loadGitStatus]);
 
-  const handlePull = async () => {
+  const handlePull = useCallback(async () => {
     try {
       setOperationLoading('pull');
       await gitService.pull(projectId);
@@ -171,9 +247,9 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
     } finally {
       setOperationLoading(null);
     }
-  };
+  }, [projectId, loadGitStatus]);
 
-  const switchBranch = async (branch: string) => {
+  const switchBranch = useCallback(async (branch: string) => {
     try {
       setOperationLoading(`checkout-${branch}`);
       await gitService.checkout(projectId, branch);
@@ -185,7 +261,7 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
     } finally {
       setOperationLoading(null);
     }
-  };
+  }, [projectId, loadGitStatus]);
 
   return (
     <div className={cn('h-full flex flex-col bg-background', className)}>
@@ -231,20 +307,12 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
           {showBranchDropdown && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg z-10">
               {branches.map((branch) => (
-                <button
+                <BranchSelectorItem
                   key={branch}
+                  branch={branch}
+                  isCurrentBranch={branch === currentBranch}
                   onClick={() => switchBranch(branch)}
-                  className={cn(
-                    "w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2",
-                    branch === currentBranch && "bg-muted"
-                  )}
-                >
-                  <GitBranch className="w-3 h-3" />
-                  <span className="font-mono">{branch}</span>
-                  {branch === currentBranch && (
-                    <Check className="w-3 h-3 ml-auto text-primary" />
-                  )}
-                </button>
+                />
               ))}
             </div>
           )}
@@ -257,40 +325,14 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
               Changes ({unstagedFiles.length})
             </h3>
             <div className="space-y-1">
-              {unstagedFiles.map((file) => {
-                const StatusIcon = STATUS_ICONS[file.status].icon;
-                return (
-                  <div
-                    key={file.path}
-                    className="flex items-center gap-2 p-2 rounded-md bg-card border border-border group hover:bg-muted/50 transition-colors"
-                  >
-                    <div className={cn("flex-shrink-0", STATUS_ICONS[file.status].color)}>
-                      <StatusIcon className="w-4 h-4" />
-                    </div>
-                    <span className="flex-1 font-mono text-sm truncate">
-                      {file.path}
-                    </span>
-                    <span className={cn(
-                      "text-xs font-semibold flex-shrink-0 w-4",
-                      STATUS_ICONS[file.status].color
-                    )}>
-                      {STATUS_ICONS[file.status].label}
-                    </span>
-                    <HapticButton
-                      className="p-1 hover:bg-accent hover:text-accent-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => stageFile(file.path)}
-                      disabled={operationLoading === `stage-${file.path}`}
-                      aria-label={`Stage ${file.path}`}
-                    >
-                      {operationLoading === `stage-${file.path}` ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Plus className="w-4 h-4" />
-                      )}
-                    </HapticButton>
-                  </div>
-                );
-              })}
+              {unstagedFiles.map((file) => (
+                <GitFileItem
+                  key={file.path}
+                  file={file}
+                  operationLoading={operationLoading}
+                  onStage={() => stageFile(file.path)}
+                />
+              ))}
             </div>
           </section>
         )}
@@ -303,40 +345,14 @@ export function GitPane({ projectId, onBack, className }: GitPaneProps) {
               Staged ({stagedFiles.length})
             </h3>
             <div className="space-y-1">
-              {stagedFiles.map((file) => {
-                const StatusIcon = STATUS_ICONS[file.status].icon;
-                return (
-                  <div
-                    key={file.path}
-                    className="flex items-center gap-2 p-2 rounded-md bg-card border border-border group hover:bg-muted/50 transition-colors"
-                  >
-                    <div className={cn("flex-shrink-0", STATUS_ICONS[file.status].color)}>
-                      <StatusIcon className="w-4 h-4" />
-                    </div>
-                    <span className="flex-1 font-mono text-sm truncate">
-                      {file.path}
-                    </span>
-                    <span className={cn(
-                      "text-xs font-semibold flex-shrink-0 w-4",
-                      STATUS_ICONS[file.status].color
-                    )}>
-                      {STATUS_ICONS[file.status].label}
-                    </span>
-                    <HapticButton
-                      className="p-1 hover:bg-accent hover:text-accent-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => unstageFile(file.path)}
-                      disabled={operationLoading === `unstage-${file.path}`}
-                      aria-label={`Unstage ${file.path}`}
-                    >
-                      {operationLoading === `unstage-${file.path}` ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Minus className="w-4 h-4" />
-                      )}
-                    </HapticButton>
-                  </div>
-                );
-              })}
+              {stagedFiles.map((file) => (
+                <GitFileItem
+                  key={file.path}
+                  file={file}
+                  operationLoading={operationLoading}
+                  onUnstage={() => unstageFile(file.path)}
+                />
+              ))}
             </div>
           </section>
         )}

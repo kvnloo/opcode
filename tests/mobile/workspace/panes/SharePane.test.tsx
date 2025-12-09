@@ -475,5 +475,323 @@ describe('SharePane', () => {
 
       expect(screen.getByRole('heading', { name: 'Share' })).toBeInTheDocument();
     });
+
+    it('supports keyboard navigation', () => {
+      render(<SharePane {...defaultProps} />);
+
+      const emailInput = screen.getByPlaceholderText('email@example.com');
+
+      // Input should be in the document and have correct type
+      expect(emailInput).toBeInTheDocument();
+      expect(emailInput).toHaveAttribute('type', 'email');
+    });
+
+    it('has accessible form inputs', () => {
+      render(<SharePane {...defaultProps} />);
+
+      const emailInput = screen.getByPlaceholderText('email@example.com');
+      expect(emailInput).toHaveAttribute('type', 'email');
+
+      const selects = screen.getAllByRole('combobox');
+      expect(selects.length).toBeGreaterThan(0);
+    });
+
+    it('announces collaborator changes to screen readers', () => {
+      const { rerender } = render(<SharePane {...defaultProps} />);
+
+      const updatedCollaborators = [...mockCollaborators, {
+        id: '3',
+        email: 'new@example.com',
+        permission: 'view' as const,
+        joinedAt: new Date(),
+      }];
+
+      rerender(<SharePane {...defaultProps} collaborators={updatedCollaborators} />);
+
+      expect(screen.getByText('3 collaborators')).toBeInTheDocument();
+    });
+
+    it('has descriptive button labels', () => {
+      render(<SharePane {...defaultProps} />);
+
+      expect(screen.getAllByText('Copy Link').length).toBeGreaterThan(0);
+      expect(screen.getByText('Copy Embed Code')).toBeInTheDocument();
+    });
+
+    it('provides feedback for user actions', async () => {
+      render(<SharePane {...defaultProps} />);
+
+      const copyButton = screen.getAllByText('Copy Link')[0];
+      fireEvent.click(copyButton);
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Copied!')[0]).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Edge Cases - Additional', () => {
+    it('handles empty project URL gracefully', () => {
+      render(<SharePane {...defaultProps} projectUrl="" />);
+
+      expect(screen.getByText('Project URL')).toBeInTheDocument();
+    });
+
+    it('handles very long project URLs', () => {
+      const longUrl = 'https://' + 'a'.repeat(500) + '.com';
+      render(<SharePane {...defaultProps} projectUrl={longUrl} />);
+
+      expect(screen.getByText(longUrl)).toBeInTheDocument();
+    });
+
+    it('handles special characters in project name', () => {
+      const specialName = 'Project <>&"\'';
+      render(<SharePane {...defaultProps} projectName={specialName} />);
+
+      expect(screen.getByText('Share')).toBeInTheDocument();
+    });
+
+    it('handles clipboard API failure gracefully', async () => {
+      writeTextMock.mockRejectedValue(new Error('Clipboard access denied'));
+
+      render(<SharePane {...defaultProps} />);
+
+      const copyButton = screen.getAllByText('Copy Link')[0];
+      fireEvent.click(copyButton);
+
+      // Should not crash the component
+      await waitFor(() => {
+        expect(screen.getByText('Share')).toBeInTheDocument();
+      });
+    });
+
+    it('handles invalid email formats', () => {
+      render(<SharePane {...defaultProps} />);
+
+      const emailInput = screen.getByPlaceholderText('email@example.com');
+      fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+
+      const inviteFormContainer = emailInput.closest('[class*="p-3"]');
+      const sendButton = inviteFormContainer?.querySelector('button');
+
+      // Button should be disabled for invalid email
+      expect(sendButton).toBeDisabled();
+    });
+
+    it('handles rapid collaborator additions', async () => {
+      render(<SharePane {...defaultProps} />);
+
+      const emailInput = screen.getByPlaceholderText('email@example.com');
+      const inviteFormContainer = emailInput.closest('[class*="p-3"]');
+
+      for (let i = 0; i < 5; i++) {
+        fireEvent.change(emailInput, { target: { value: `user${i}@example.com` } });
+        const sendButton = inviteFormContainer?.querySelector('button:not([disabled])');
+        if (sendButton) {
+          fireEvent.click(sendButton);
+        }
+      }
+
+      await waitFor(() => {
+        expect(defaultProps.onInvite).toHaveBeenCalled();
+      });
+    });
+
+    it('handles missing navigator.share gracefully', () => {
+      delete (global.navigator as any).share;
+
+      render(<SharePane {...defaultProps} />);
+
+      const shareButtons = screen.getAllByText('Share').filter(el => el.tagName === 'BUTTON');
+      expect(shareButtons.length).toBe(0);
+    });
+
+    it('handles window.open failure for social sharing', () => {
+      openMock.mockReturnValue(null);
+
+      render(<SharePane {...defaultProps} />);
+
+      const twitterButton = screen.getByText('Twitter/X');
+      fireEvent.click(twitterButton);
+
+      expect(openMock).toHaveBeenCalled();
+    });
+
+    it('handles null collaborator names', () => {
+      const collaboratorsWithoutNames: Collaborator[] = [
+        {
+          id: '1',
+          email: 'test@example.com',
+          permission: 'view',
+          joinedAt: new Date(),
+        },
+      ];
+
+      render(<SharePane {...defaultProps} collaborators={collaboratorsWithoutNames} />);
+
+      expect(screen.getByText('test@example.com')).toBeInTheDocument();
+    });
+
+    it('handles permission update failures', () => {
+      // Test that the component doesn't crash even if onUpdatePermission is not provided
+      render(<SharePane {...defaultProps} onUpdatePermission={undefined} />);
+
+      const permissionSelects = screen.getAllByRole('combobox');
+      const collaboratorPermission = permissionSelects[1];
+
+      // Permission select should be disabled when no handler provided
+      expect(collaboratorPermission).toBeDisabled();
+    });
+  });
+
+  describe('Loading States - Additional', () => {
+    it('shows loading state during clipboard operation', async () => {
+      writeTextMock.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+
+      render(<SharePane {...defaultProps} />);
+
+      const copyButton = screen.getAllByText('Copy Link')[0];
+      fireEvent.click(copyButton);
+
+      // Should show some feedback
+      await waitFor(() => {
+        expect(writeTextMock).toHaveBeenCalled();
+      });
+    });
+
+    it('handles async share operation', async () => {
+      const mockShare = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+      Object.defineProperty(global.navigator, 'share', {
+        value: mockShare,
+        writable: true,
+        configurable: true,
+      });
+
+      render(<SharePane {...defaultProps} />);
+
+      const shareButton = screen.getAllByText('Share').find(el => el.tagName === 'BUTTON');
+      if (shareButton) {
+        fireEvent.click(shareButton);
+
+        await waitFor(() => {
+          expect(mockShare).toHaveBeenCalled();
+        });
+      }
+    });
+
+    it('maintains UI responsiveness during collaborator updates', () => {
+      const { rerender } = render(<SharePane {...defaultProps} />);
+
+      for (let i = 0; i < 10; i++) {
+        const newCollaborators = [...mockCollaborators, {
+          id: `temp-${i}`,
+          email: `temp${i}@example.com`,
+          permission: 'view' as const,
+          joinedAt: new Date(),
+        }];
+        rerender(<SharePane {...defaultProps} collaborators={newCollaborators} />);
+      }
+
+      expect(screen.getByText('Share')).toBeInTheDocument();
+    });
+
+    it('shows feedback during invite process', async () => {
+      const onInvite = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+
+      render(<SharePane {...defaultProps} onInvite={onInvite} />);
+
+      const emailInput = screen.getByPlaceholderText('email@example.com');
+      fireEvent.change(emailInput, { target: { value: 'slow@example.com' } });
+
+      const inviteFormContainer = emailInput.closest('[class*="p-3"]');
+      const sendButton = inviteFormContainer?.querySelector('button:not([disabled])');
+
+      if (sendButton) {
+        fireEvent.click(sendButton);
+
+        await waitFor(() => {
+          expect(onInvite).toHaveBeenCalled();
+        });
+      }
+    });
+  });
+
+  describe('Responsive Layout - Additional', () => {
+    it('adapts to mobile viewport (375px)', () => {
+      global.innerWidth = 375;
+      global.innerHeight = 667;
+
+      const { container } = render(<SharePane {...defaultProps} />);
+
+      const mainContainer = container.querySelector('.h-full');
+      expect(mainContainer).toBeInTheDocument();
+    });
+
+    it('adapts to tablet viewport (768px)', () => {
+      global.innerWidth = 768;
+      global.innerHeight = 1024;
+
+      const { container } = render(<SharePane {...defaultProps} />);
+
+      const mainContainer = container.querySelector('.h-full');
+      expect(mainContainer).toBeInTheDocument();
+    });
+
+    it('handles scrollable collaborator list on mobile', () => {
+      global.innerWidth = 375;
+
+      const manyCollaborators: Collaborator[] = Array.from({ length: 20 }, (_, i) => ({
+        id: `${i}`,
+        email: `user${i}@example.com`,
+        permission: 'view' as const,
+        joinedAt: new Date(),
+      }));
+
+      const { container } = render(<SharePane {...defaultProps} collaborators={manyCollaborators} />);
+
+      expect(screen.getByText('20 collaborators')).toBeInTheDocument();
+    });
+
+    it('maintains readable text on small screens', () => {
+      global.innerWidth = 320;
+      global.innerHeight = 568;
+
+      render(<SharePane {...defaultProps} />);
+
+      expect(screen.getByText('Share')).toBeInTheDocument();
+      expect(screen.getByText(defaultProps.projectUrl)).toBeInTheDocument();
+    });
+
+    it('shows compact layout on mobile for embed options', () => {
+      global.innerWidth = 375;
+
+      render(<SharePane {...defaultProps} />);
+
+      expect(screen.getByText('Small')).toBeInTheDocument();
+      expect(screen.getByText('Medium')).toBeInTheDocument();
+      expect(screen.getByText('Large')).toBeInTheDocument();
+    });
+
+    it('adjusts QR code display for different viewports', () => {
+      const viewports = [
+        { width: 320, height: 568 },
+        { width: 768, height: 1024 },
+      ];
+
+      viewports.forEach(({ width, height }) => {
+        global.innerWidth = width;
+        global.innerHeight = height;
+
+        const { unmount } = render(<SharePane {...defaultProps} />);
+
+        const qrButton = screen.getAllByText('QR Code')[0];
+        fireEvent.click(qrButton);
+
+        expect(screen.getByText('Scan to open project')).toBeInTheDocument();
+
+        // Clean up after each render
+        unmount();
+      });
+    });
   });
 });

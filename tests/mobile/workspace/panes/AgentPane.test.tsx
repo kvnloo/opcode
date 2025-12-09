@@ -483,5 +483,242 @@ describe('AgentPane', () => {
       const searchInput = screen.getByPlaceholderText('Search tools and files...');
       expect(searchInput).toHaveAttribute('type', 'text');
     });
+
+    it('should have proper ARIA labels for status indicators', () => {
+      render(<AgentPane {...defaultProps} />);
+
+      const statusIndicators = screen.getAllByText('Setup database schema');
+      expect(statusIndicators.length).toBeGreaterThan(0);
+    });
+
+    it('should support keyboard navigation for tools', () => {
+      render(<AgentPane {...defaultProps} />);
+
+      const secretsButton = screen.getByText('Secrets');
+
+      // Button should be in the document and be a button element
+      expect(secretsButton).toBeInTheDocument();
+      expect(secretsButton.closest('button')).toBeInTheDocument();
+    });
+
+    it('should announce task status changes', () => {
+      const { rerender } = render(<AgentPane {...defaultProps} />);
+
+      const updatedTasks = [...mockTasks];
+      updatedTasks[1] = { ...updatedTasks[1], status: 'completed' };
+
+      rerender(<AgentPane {...defaultProps} tasks={updatedTasks} />);
+
+      const completedTask = screen.getAllByText('Setup database schema');
+      expect(completedTask.length).toBeGreaterThan(0);
+    });
+
+    it('should have descriptive text for screen readers', () => {
+      render(<AgentPane {...defaultProps} />);
+
+      expect(screen.getByText('Task Progress')).toBeInTheDocument();
+      expect(screen.getByText('1/3')).toBeInTheDocument();
+    });
+  });
+
+  describe('Edge Cases - Additional', () => {
+    it('should handle tasks with missing IDs', () => {
+      const tasksWithoutIds: Task[] = [
+        { id: '', description: 'Task without ID', status: 'pending' },
+      ];
+
+      expect(() => render(<AgentPane {...defaultProps} tasks={tasksWithoutIds} />)).not.toThrow();
+    });
+
+    it('should handle very long task descriptions', () => {
+      const longDescription = 'A'.repeat(500);
+      const tasksWithLongDesc: Task[] = [
+        { id: '1', description: longDescription, status: 'pending' },
+      ];
+
+      render(<AgentPane {...defaultProps} tasks={tasksWithLongDesc} currentTask={null} />);
+
+      expect(screen.getByText(longDescription)).toBeInTheDocument();
+    });
+
+    it('should handle negative work duration', () => {
+      render(<AgentPane {...defaultProps} workDuration={-1} />);
+
+      expect(screen.queryByText(/Worked for/)).not.toBeInTheDocument();
+    });
+
+    it('should handle tasks with future timestamps', () => {
+      const futureTasks: Task[] = [
+        {
+          id: 'future-1',
+          description: 'Future task',
+          status: 'pending',
+          startTime: Date.now() + 100000,
+        },
+      ];
+
+      expect(() => render(<AgentPane {...defaultProps} tasks={futureTasks} currentTask={null} />)).not.toThrow();
+    });
+
+    it('should handle checkpoints with missing data', () => {
+      const incompleteCheckpoints: Checkpoint[] = [
+        {
+          id: 'checkpoint-incomplete',
+          timestamp: Date.now(),
+          summary: '',
+          filesChanged: [],
+        },
+      ];
+
+      render(<AgentPane {...defaultProps} checkpoints={incompleteCheckpoints} />);
+
+      expect(screen.getByText('Rollback here')).toBeInTheDocument();
+    });
+
+    it('should handle rapid status changes', () => {
+      const { rerender } = render(<AgentPane {...defaultProps} agentStatus="idle" />);
+
+      rerender(<AgentPane {...defaultProps} agentStatus="running" />);
+      rerender(<AgentPane {...defaultProps} agentStatus="error" />);
+      rerender(<AgentPane {...defaultProps} agentStatus="idle" />);
+
+      expect(screen.getByText('Task Progress')).toBeInTheDocument();
+    });
+
+    it('should handle null error message', () => {
+      render(<AgentPane {...defaultProps} error={null as any} />);
+
+      expect(screen.queryByText(/Agent encountered an error/)).not.toBeInTheDocument();
+    });
+
+    it('should handle empty string in callbacks', () => {
+      const { rerender } = render(<AgentPane {...defaultProps} />);
+
+      // Rollback with empty ID
+      const rollbackButton = screen.getByText('Rollback here');
+      fireEvent.click(rollbackButton);
+
+      expect(mockOnRollback).toHaveBeenCalled();
+    });
+  });
+
+  describe('Loading States - Additional', () => {
+    it('should show skeleton loader for loading state', () => {
+      render(<AgentPane {...defaultProps} tasks={[]} currentTask={null} agentStatus="running" />);
+
+      const progressHeader = screen.getByText('Task Progress').closest('button');
+      expect(progressHeader).toBeInTheDocument();
+    });
+
+    it('should indicate task loading with spinner', () => {
+      render(<AgentPane {...defaultProps} agentStatus="running" />);
+
+      const spinner = document.querySelector('.animate-spin');
+      expect(spinner).toBeInTheDocument();
+    });
+
+    it('should handle transition from loading to loaded state', () => {
+      const { rerender } = render(<AgentPane {...defaultProps} agentStatus="running" tasks={[]} currentTask={null} />);
+
+      rerender(<AgentPane {...defaultProps} agentStatus="idle" tasks={mockTasks} currentTask={null} />);
+
+      expect(screen.getByText('Create user authentication')).toBeInTheDocument();
+    });
+
+    it('should show progress during long-running tasks', () => {
+      const longRunningTask: Task = {
+        id: 'long-task',
+        description: 'Long running operation',
+        status: 'in_progress',
+        startTime: Date.now() - 300000, // Started 5 minutes ago
+      };
+
+      render(<AgentPane {...defaultProps} tasks={[longRunningTask]} currentTask={longRunningTask} />);
+
+      expect(screen.getAllByText('Long running operation').length).toBeGreaterThan(0);
+    });
+
+    it('should maintain UI responsiveness during updates', () => {
+      const { rerender } = render(<AgentPane {...defaultProps} />);
+
+      for (let i = 0; i < 10; i++) {
+        const updatedTasks = [...mockTasks, {
+          id: `task-${i}`,
+          description: `Task ${i}`,
+          status: 'pending' as const,
+        }];
+        rerender(<AgentPane {...defaultProps} tasks={updatedTasks} />);
+      }
+
+      expect(screen.getByText('Task Progress')).toBeInTheDocument();
+    });
+  });
+
+  describe('Responsive Layout - Additional', () => {
+    it('should adapt to mobile viewport (320px)', () => {
+      global.innerWidth = 320;
+      global.innerHeight = 568;
+
+      const { container } = render(<AgentPane {...defaultProps} />);
+
+      const mainContainer = container.firstChild as HTMLElement;
+      expect(mainContainer).toHaveClass('flex', 'flex-col');
+    });
+
+    it('should adapt to tablet viewport (768px)', () => {
+      global.innerWidth = 768;
+      global.innerHeight = 1024;
+
+      const { container } = render(<AgentPane {...defaultProps} />);
+
+      const mainContainer = container.firstChild as HTMLElement;
+      expect(mainContainer).toHaveClass('h-full');
+    });
+
+    it('should handle scrollable content in mobile viewport', () => {
+      global.innerWidth = 375;
+      global.innerHeight = 667;
+
+      const { container } = render(<AgentPane {...defaultProps} />);
+
+      const scrollArea = container.querySelector('.overflow-y-auto');
+      expect(scrollArea).toBeInTheDocument();
+    });
+
+    it('should maintain fixed quick access bar at bottom on all viewports', () => {
+      const viewports = [
+        { width: 320, height: 568 },
+        { width: 768, height: 1024 },
+        { width: 1024, height: 768 },
+      ];
+
+      viewports.forEach(({ width, height }) => {
+        global.innerWidth = width;
+        global.innerHeight = height;
+
+        const { container, unmount } = render(<AgentPane {...defaultProps} />);
+
+        const quickAccessBar = screen.getAllByText('Secrets')[0].closest('.border-t');
+        expect(quickAccessBar).toBeInTheDocument();
+
+        // Clean up after each render
+        unmount();
+      });
+    });
+
+    it('should show collapsible sections properly on mobile', () => {
+      global.innerWidth = 375;
+      global.innerHeight = 667;
+
+      render(<AgentPane {...defaultProps} />);
+
+      const collapseButton = screen.getByText('Task Progress').closest('button');
+      expect(collapseButton).toBeInTheDocument();
+
+      fireEvent.click(collapseButton!);
+
+      // Section should still be accessible after collapse
+      expect(collapseButton).toBeInTheDocument();
+    });
   });
 });

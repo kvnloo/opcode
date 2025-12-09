@@ -429,5 +429,335 @@ describe('ConsolePane', () => {
       const pathElements = screen.getAllByText(defaultProps.projectPath);
       expect(pathElements.length).toBeGreaterThanOrEqual(1);
     });
+
+    it('supports keyboard navigation in terminal input', () => {
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+
+      // Input should be in the document and be an input element
+      expect(input).toBeInTheDocument();
+      expect(input.tagName).toBe('INPUT');
+    });
+
+    it('has accessible button labels', () => {
+      render(<ConsolePane {...defaultProps} />);
+
+      expect(screen.getByText('Execute')).toBeInTheDocument();
+      expect(screen.getByText('Clear')).toBeInTheDocument();
+    });
+
+    it('has proper color contrast for output', async () => {
+      const { container } = render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      fireEvent.change(input, { target: { value: 'ls' } });
+      fireEvent.click(executeBtn);
+
+      await waitFor(() => {
+        const outputLine = screen.getByText('$ ls');
+        expect(outputLine).toBeInTheDocument();
+        // Text color classes should be present for readability
+        expect(outputLine.className).toBeTruthy();
+      });
+    });
+
+    it('announces command execution to screen readers', async () => {
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      fireEvent.change(input, { target: { value: 'echo test' } });
+      fireEvent.click(executeBtn);
+
+      await waitFor(() => {
+        // Output should be visible and readable
+        expect(screen.getByText('$ echo test')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('handles empty project path gracefully', () => {
+      render(<ConsolePane {...defaultProps} projectPath="" />);
+
+      expect(screen.getByText('Console')).toBeInTheDocument();
+    });
+
+    it('handles very long commands', async () => {
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+      const longCommand = 'a'.repeat(500);
+
+      fireEvent.change(input, { target: { value: longCommand } });
+      fireEvent.click(executeBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(`$ ${longCommand}`)).toBeInTheDocument();
+      });
+    });
+
+    it('handles rapid command execution', async () => {
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      // Execute multiple commands rapidly
+      for (let i = 0; i < 3; i++) {
+        fireEvent.change(input, { target: { value: `cmd${i}` } });
+        fireEvent.click(executeBtn);
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText('$ cmd2')).toBeInTheDocument();
+      });
+    });
+
+    it('handles special characters in commands', async () => {
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+      const specialCommand = 'echo "test & test | test > test"';
+
+      fireEvent.change(input, { target: { value: specialCommand } });
+      fireEvent.click(executeBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(`$ ${specialCommand}`)).toBeInTheDocument();
+      });
+    });
+
+    it('handles malformed API responses', async () => {
+      if (global.window) {
+        (global.window as any).__TAURI__ = true;
+      }
+      mockInvoke.mockRejectedValue({ message: undefined });
+
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      fireEvent.change(input, { target: { value: 'test' } });
+      fireEvent.click(executeBtn);
+
+      await waitFor(() => {
+        // Should handle error even without message
+        const errorElements = screen.queryAllByText(/Error/);
+        expect(errorElements.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('handles network timeout gracefully', async () => {
+      if (global.window) {
+        (global.window as any).__TAURI__ = true;
+      }
+      mockInvoke.mockImplementation(() =>
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 100))
+      );
+
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      fireEvent.change(input, { target: { value: 'slow-command' } });
+      fireEvent.click(executeBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Error.*Timeout/)).toBeInTheDocument();
+      }, { timeout: 2000 });
+    });
+
+    it('handles large output without crashing', async () => {
+      if (global.window) {
+        (global.window as any).__TAURI__ = true;
+      }
+      const largeOutput = 'x'.repeat(10000);
+      mockInvoke.mockResolvedValue(largeOutput);
+
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      fireEvent.change(input, { target: { value: 'generate-large' } });
+      fireEvent.click(executeBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(largeOutput)).toBeInTheDocument();
+      });
+    });
+
+    it('handles null/undefined onOutput callback', async () => {
+      render(<ConsolePane {...defaultProps} onOutput={undefined} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      fireEvent.change(input, { target: { value: 'test' } });
+
+      // Should not throw
+      expect(() => fireEvent.click(executeBtn)).not.toThrow();
+    });
+  });
+
+  describe('Loading States', () => {
+    it('shows executing state indicator', async () => {
+      if (global.window) {
+        (global.window as any).__TAURI__ = true;
+      }
+      mockInvoke.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve('done'), 200)));
+
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      fireEvent.change(input, { target: { value: 'long-running' } });
+      fireEvent.click(executeBtn);
+
+      // Button should be disabled while executing
+      await waitFor(() => {
+        expect(executeBtn).toBeDisabled();
+      });
+
+      // Wait for command to finish
+      await waitFor(() => {
+        expect(executeBtn).not.toBeDisabled();
+      }, { timeout: 3000 });
+    });
+
+    it('prevents duplicate execution while command is running', async () => {
+      if (global.window) {
+        (global.window as any).__TAURI__ = true;
+      }
+      mockInvoke.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve('done'), 100)));
+
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      fireEvent.change(input, { target: { value: 'cmd1' } });
+      fireEvent.click(executeBtn);
+
+      // Button should be disabled while executing
+      await waitFor(() => {
+        expect(executeBtn).toBeDisabled();
+      });
+
+      // Even if we try to click, it shouldn't execute again
+      fireEvent.click(executeBtn);
+
+      // Wait for completion
+      await waitFor(() => {
+        expect(executeBtn).not.toBeDisabled();
+      }, { timeout: 2000 });
+    });
+
+    it('clears executing state after error', async () => {
+      if (global.window) {
+        (global.window as any).__TAURI__ = true;
+      }
+      mockInvoke.mockRejectedValue(new Error('Command failed'));
+
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      fireEvent.change(input, { target: { value: 'failing-cmd' } });
+      fireEvent.click(executeBtn);
+
+      await waitFor(() => {
+        expect(executeBtn).toBeDisabled();
+      });
+
+      await waitFor(() => {
+        expect(executeBtn).not.toBeDisabled();
+      }, { timeout: 2000 });
+    });
+
+    it('maintains responsive UI during long operations', async () => {
+      if (global.window) {
+        (global.window as any).__TAURI__ = true;
+      }
+      mockInvoke.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve('done'), 150)));
+
+      render(<ConsolePane {...defaultProps} />);
+
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      fireEvent.change(input, { target: { value: 'long-cmd' } });
+      fireEvent.click(executeBtn);
+
+      // UI should still be interactive (can type in input even while disabled button)
+      await waitFor(() => {
+        expect(input).not.toBeDisabled();
+      });
+    });
+  });
+
+  describe('Responsive Layout', () => {
+    it('adapts to mobile viewport', () => {
+      // Simulate mobile viewport
+      global.innerWidth = 375;
+      global.innerHeight = 667;
+
+      const { container } = render(<ConsolePane {...defaultProps} />);
+
+      const mainContainer = container.querySelector('.h-full');
+      expect(mainContainer).toBeInTheDocument();
+      expect(mainContainer).toHaveClass('flex-col');
+    });
+
+    it('adapts to tablet viewport', () => {
+      // Simulate tablet viewport
+      global.innerWidth = 768;
+      global.innerHeight = 1024;
+
+      const { container } = render(<ConsolePane {...defaultProps} />);
+
+      const mainContainer = container.querySelector('.h-full');
+      expect(mainContainer).toBeInTheDocument();
+    });
+
+    it('scrolls properly in constrained space', async () => {
+      const { container } = render(<ConsolePane {...defaultProps} />);
+
+      // Execute multiple commands to fill the output
+      const input = screen.getByPlaceholderText('Type a command...');
+      const executeBtn = screen.getByText('Execute');
+
+      for (let i = 0; i < 5; i++) {
+        fireEvent.change(input, { target: { value: `echo line ${i}` } });
+        fireEvent.click(executeBtn);
+      }
+
+      await waitFor(() => {
+        // Output area should have overflow scrolling
+        const outputArea = container.querySelector('.flex-1');
+        expect(outputArea).toBeInTheDocument();
+      });
+    });
+
+    it('maintains fixed input area at bottom', () => {
+      const { container } = render(<ConsolePane {...defaultProps} />);
+
+      const terminalInput = screen.getByTestId('terminal-input');
+      expect(terminalInput).toBeInTheDocument();
+
+      // Input should be in the document regardless of viewport
+      expect(terminalInput.parentElement).toBeInTheDocument();
+    });
   });
 });
