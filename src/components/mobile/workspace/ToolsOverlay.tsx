@@ -120,7 +120,7 @@ export function ToolsOverlay({ isOpen, onClose, onToolSelect, onSearch }: ToolsO
             <div className="flex-shrink-0 p-4 border-b border-border">
               <div className="flex items-center gap-3 mb-3">
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold">Tools</h2>
+                  <h2 className="text-lg font-semibold">Project Tools</h2>
                 </div>
                 <button
                   onClick={onClose}

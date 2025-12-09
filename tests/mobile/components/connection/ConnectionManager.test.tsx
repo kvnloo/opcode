@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '../../utils/renderWithProviders';
+import { render, screen, waitFor, fireEvent } from '../../utils/renderWithProviders';
 import { ConnectionManager } from '../../../../src/components/mobile/connection/ConnectionManager';
 import userEvent from '@testing-library/user-event';
 
@@ -103,58 +103,51 @@ describe('ConnectionManager', () => {
 
     it('shows connecting state during tailscale connection', async () => {
       vi.useFakeTimers();
-      const user = userEvent.setup({ delay: null });
       render(<ConnectionManager />);
 
       // Switch to tailscale and fill form
       const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
       const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
-      await user.click(tailscaleCard!);
+      fireEvent.click(tailscaleCard!);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
       const usernameInput = screen.getByPlaceholderText('Username');
-      await user.type(hostInput, '100.64.0.5');
-      await user.type(usernameInput, 'testuser');
+      fireEvent.change(hostInput, { target: { value: '100.64.0.5' } });
+      fireEvent.change(usernameInput, { target: { value: 'testuser' } });
 
-      const connectButton = screen.getByText('Connect via Tailscale');
-      await user.click(connectButton);
+      const connectButton = screen.getByRole('button', { name: /connect via tailscale/i });
+      fireEvent.click(connectButton);
 
-      // Should show connecting state
-      expect(screen.getByText('Connecting...')).toBeInTheDocument();
+      // Should show connecting state (text appears in both button and status)
+      const connectingTexts = screen.getAllByText('Connecting...');
+      expect(connectingTexts.length).toBeGreaterThan(0);
 
       vi.useRealTimers();
     });
 
     it('shows connected state after successful connection', async () => {
-      vi.useFakeTimers();
-      const user = userEvent.setup({ delay: null });
       render(<ConnectionManager />);
 
       // Switch to tailscale and connect
       const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
       const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
-      await user.click(tailscaleCard!);
+      fireEvent.click(tailscaleCard!);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
       const usernameInput = screen.getByPlaceholderText('Username');
-      await user.type(hostInput, '100.64.0.5');
-      await user.type(usernameInput, 'testuser');
+      fireEvent.change(hostInput, { target: { value: '100.64.0.5' } });
+      fireEvent.change(usernameInput, { target: { value: 'testuser' } });
 
-      const connectButton = screen.getByText('Connect via Tailscale');
-      await user.click(connectButton);
+      const connectButton = screen.getByRole('button', { name: /connect via tailscale/i });
+      fireEvent.click(connectButton);
 
-      // Fast-forward 2 seconds (connection timeout)
-      vi.advanceTimersByTime(2000);
-
+      // Wait for connection to complete (simulated connection takes 2 seconds)
       await waitFor(() => {
         expect(screen.getByText(/Connected to 100\.64\.0\.5/)).toBeInTheDocument();
-      });
-
-      vi.useRealTimers();
+      }, { timeout: 3000 });
     });
 
     it('updates status when switching modes', async () => {
-      const user = userEvent.setup();
       render(<ConnectionManager />);
 
       // Local is connected
@@ -163,7 +156,7 @@ describe('ConnectionManager', () => {
       // Switch to tailscale (not connected)
       const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
       const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
-      await user.click(tailscaleCard!);
+      fireEvent.click(tailscaleCard!);
 
       // Status should still show local as connected since we haven't connected to tailscale
       expect(screen.getByText('Connected')).toBeInTheDocument();
@@ -172,56 +165,48 @@ describe('ConnectionManager', () => {
 
   describe('Connection Callbacks', () => {
     it('calls handleConnect with correct mode and host for tailscale', async () => {
-      vi.useFakeTimers();
-      const user = userEvent.setup({ delay: null });
       render(<ConnectionManager />);
 
       const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
       const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
-      await user.click(tailscaleCard!);
+      fireEvent.click(tailscaleCard!);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
       const usernameInput = screen.getByPlaceholderText('Username');
-      await user.type(hostInput, '192.168.1.100');
-      await user.type(usernameInput, 'admin');
+      fireEvent.change(hostInput, { target: { value: '192.168.1.100' } });
+      fireEvent.change(usernameInput, { target: { value: 'admin' } });
 
-      const connectButton = screen.getByText('Connect via Tailscale');
-      await user.click(connectButton);
+      const connectButton = screen.getByRole('button', { name: /connect via tailscale/i });
+      fireEvent.click(connectButton);
 
-      // Verify connecting state is set
-      expect(screen.getByText('Connecting...')).toBeInTheDocument();
+      // Verify connecting state is set (text appears in both button and status)
+      const connectingTexts = screen.getAllByText('Connecting...');
+      expect(connectingTexts.length).toBeGreaterThan(0);
 
-      // Fast-forward and check connection completed
-      vi.advanceTimersByTime(2000);
+      // Wait for connection to complete
       await waitFor(() => {
         expect(screen.getByText(/Connected to 192\.168\.1\.100/)).toBeInTheDocument();
-      });
-
-      vi.useRealTimers();
+      }, { timeout: 3000 });
     });
 
     it('calls handleConnect with correct mode for web', async () => {
-      vi.useFakeTimers();
-      const user = userEvent.setup({ delay: null });
       render(<ConnectionManager />);
 
       const webHeading = screen.getByRole('heading', { name: /claude code web/i });
       const webCard = webHeading.closest('.cursor-pointer');
-      await user.click(webCard!);
+      fireEvent.click(webCard!);
 
-      const connectButton = screen.getByText('Connect with GitHub');
-      await user.click(connectButton);
+      const connectButton = screen.getByRole('button', { name: /connect with github/i });
+      fireEvent.click(connectButton);
 
-      // Verify connecting state
-      expect(screen.getByText('Connecting...')).toBeInTheDocument();
+      // Verify connecting state (text appears in both button and status)
+      const connectingTexts = screen.getAllByText('Connecting...');
+      expect(connectingTexts.length).toBeGreaterThan(0);
 
-      // Fast-forward and check connection completed
-      vi.advanceTimersByTime(2000);
+      // Wait for connection to complete
       await waitFor(() => {
         expect(screen.getByText('Connected')).toBeInTheDocument();
-      });
-
-      vi.useRealTimers();
+      }, { timeout: 3000 });
     });
   });
 
@@ -282,14 +267,13 @@ describe('ConnectionManager', () => {
     });
 
     it('mode cards are keyboard accessible', async () => {
-      const user = userEvent.setup();
       render(<ConnectionManager />);
 
       const tailscaleHeading = screen.getByRole('heading', { name: /tailscale ssh/i });
       const tailscaleCard = tailscaleHeading.closest('.cursor-pointer');
 
       // Should be clickable (accessible)
-      await user.click(tailscaleCard!);
+      fireEvent.click(tailscaleCard!);
       expect(tailscaleCard).toHaveClass('ring-2');
     });
   });

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { api } from './api';
+import { isMobileDevice } from './mobile/platform';
 
 // Use the same message interface as AgentExecution for consistency
 export interface ClaudeStreamMessage {
@@ -171,8 +172,14 @@ export function OutputCacheProvider({ children }: OutputCacheProviderProps) {
     setIsPolling(false);
   }, [pollingInterval]);
 
-  // Auto-start polling when provider mounts
+  // Auto-start polling when provider mounts (desktop only)
+  // On mobile, Tauri backend commands like list_running_sessions aren't available
   useEffect(() => {
+    // Skip polling on mobile - these commands aren't available on Android/iOS
+    if (isMobileDevice()) {
+      console.log('Skipping session polling on mobile platform');
+      return;
+    }
     startBackgroundPolling();
     return () => stopBackgroundPolling();
   }, [startBackgroundPolling, stopBackgroundPolling]);

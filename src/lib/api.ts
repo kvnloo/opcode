@@ -1,6 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { HooksConfiguration } from '@/types/hooks';
 
+/**
+ * Helper to check if an error is due to a missing command (common on mobile platforms)
+ * Tauri commands defined for desktop may not be available on Android/iOS
+ */
+function isCommandNotFoundError(error: unknown): boolean {
+  const errorStr = String(error);
+  return errorStr.includes('Command') && errorStr.includes('not found');
+}
+
 /** Process type for tracking in ProcessRegistry */
 export type ProcessType = 
   | { AgentRun: { agent_id: number; agent_name: string } }
@@ -469,6 +478,11 @@ export const api = {
     try {
       return await invoke<Project[]>("list_projects");
     } catch (error) {
+      // Return empty array on mobile where command isn't available
+      if (isCommandNotFoundError(error)) {
+        console.log("list_projects not available on this platform");
+        return [];
+      }
       console.error("Failed to list projects:", error);
       throw error;
     }
@@ -915,6 +929,11 @@ export const api = {
     try {
       return await invoke<AgentRun[]>('list_running_sessions');
     } catch (error) {
+      // Return empty array on mobile where command isn't available
+      if (isCommandNotFoundError(error)) {
+        console.log("list_running_sessions not available on this platform");
+        return [];
+      }
       console.error("Failed to list running agent sessions:", error);
       throw new Error(`Failed to list running agent sessions: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -1059,7 +1078,16 @@ export const api = {
    * @returns Promise resolving to list of running Claude sessions
    */
   async listRunningClaudeSessions(): Promise<any[]> {
-    return invoke("list_running_claude_sessions");
+    try {
+      return await invoke("list_running_claude_sessions");
+    } catch (error) {
+      // Return empty array on mobile where command isn't available
+      if (isCommandNotFoundError(error)) {
+        console.log("list_running_claude_sessions not available on this platform");
+        return [];
+      }
+      throw error;
+    }
   },
 
   /**
@@ -1633,6 +1661,11 @@ export const api = {
         searchQuery,
       });
     } catch (error) {
+      // Return empty data on mobile where command isn't available
+      if (isCommandNotFoundError(error)) {
+        console.log("storage_read_table not available on this platform");
+        return { data: [], total: 0, page: 1, pageSize };
+      }
       console.error("Failed to read table:", error);
       throw error;
     }

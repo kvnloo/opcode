@@ -27,6 +27,7 @@ use commands::claude::{
     save_claude_md_file, save_claude_settings, save_system_prompt, search_files,
     track_checkpoint_message, track_session_messages, update_checkpoint_settings,
     get_hooks_config, update_hooks_config, validate_hook_command,
+    start_session_watcher, start_session_polling, discover_sessions,
     ClaudeProcessState,
 };
 use commands::mcp::{
@@ -43,8 +44,18 @@ use commands::storage::{
     storage_insert_row, storage_execute_sql, storage_reset_database,
 };
 use commands::proxy::{get_proxy_settings, save_proxy_settings, apply_proxy_settings};
+
+            // AI Project Creation
+            analyze_project_description,
+            create_ai_project,
+use commands::ai_project::{analyze_project_description, create_ai_project};
+use commands::mobile::{
+    SshState, check_mobile_connection, get_connection_mode, connect_tailscale_ssh,
+    disconnect_tailscale, send_terminal_input, get_connection_status, connect_claude_web,
+};
 use process::ProcessRegistryState;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
+use tokio::sync::Mutex as TokioMutex;
 use tauri::Manager;
 
 #[cfg(target_os = "macos")]
@@ -140,6 +151,26 @@ fn main() {
             // Initialize Claude process state
             app.manage(ClaudeProcessState::default());
 
+            // Initialize SSH state for mobile connections
+            app.manage(SshState(Arc::new(TokioMutex::new(None))));
+
+            // Start session watcher
+            let app_handle = app.handle().clone();
+            match start_session_watcher(app_handle.clone()) {
+                Ok(watcher) => {
+                    log::info!("Session watcher started successfully");
+                    // Store watcher in app state to keep it alive
+                    app.manage(watcher);
+                }
+                Err(e) => {
+                    log::error!("Failed to start session watcher: {}", e);
+                    // Fall back to polling
+                    tauri::async_runtime::spawn(async move {
+                        start_session_polling(app_handle).await;
+                    });
+                }
+            }
+
             // Apply window vibrancy with rounded corners on macOS
             #[cfg(target_os = "macos")]
             {
@@ -199,7 +230,9 @@ fn main() {
             get_hooks_config,
             update_hooks_config,
             validate_hook_command,
-            
+            start_session_polling,
+            discover_sessions,
+
             // Checkpoint Management
             create_checkpoint,
             restore_checkpoint,
@@ -284,6 +317,19 @@ fn main() {
             // Proxy Settings
             get_proxy_settings,
             save_proxy_settings,
+
+            // AI Project Creation
+            analyze_project_description,
+            create_ai_project,
+
+            // Mobile Connection Commands
+            check_mobile_connection,
+            get_connection_mode,
+            connect_tailscale_ssh,
+            disconnect_tailscale,
+            send_terminal_input,
+            get_connection_status,
+            connect_claude_web,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -33,15 +33,14 @@ describe('ToolsOverlay', () => {
     it('should render when open', () => {
       render(<ToolsOverlay {...defaultProps} />);
 
-      // Check for main heading (h2)
-      const headings = screen.getAllByRole('heading', { name: 'Tools' });
-      expect(headings.length).toBeGreaterThan(0);
+      // Check for main heading (h2) - "Project Tools"
+      expect(screen.getByRole('heading', { name: 'Project Tools' })).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
       render(<ToolsOverlay {...defaultProps} isOpen={false} />);
 
-      expect(screen.queryByText('Tools')).not.toBeInTheDocument();
+      expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
     });
 
     it('should render search input', () => {
@@ -62,6 +61,17 @@ describe('ToolsOverlay', () => {
       // Count all tool buttons (2 search + 18 tools = 20 total)
       const toolButtons = container.querySelectorAll('[data-testid^="tool-"]');
       expect(toolButtons.length).toBe(20);
+    });
+
+    it('should call onToolSelect with correct tool ID', async () => {
+      render(<ToolsOverlay {...defaultProps} />);
+
+      const storageTool = screen.getByTestId('tool-storage');
+      fireEvent.click(storageTool);
+
+      await waitFor(() => {
+        expect(mockOnToolSelect).toHaveBeenCalledWith('storage');
+      });
     });
   });
 

@@ -264,14 +264,25 @@ describe('WorkspaceHeader', () => {
       });
     });
 
-    it.skip('is keyboard navigable', () => {
-      // Skipped: jsdom does not properly support focus() tracking
+    it('is keyboard navigable', () => {
+      // Test that elements are focusable by checking tabIndex
+      // JSDOM doesn't track focus() properly, but we can verify elements are keyboard-accessible
       renderHeader({ activePane: 'agent' });
 
       const backButton = screen.getByLabelText('Exit workspace');
-      backButton.focus();
+      const menuButton = screen.getByLabelText('Open menu');
 
-      expect(backButton).toHaveFocus();
+      // Buttons should be focusable (tabIndex >= 0 or not set means focusable)
+      expect(backButton).not.toHaveAttribute('tabindex', '-1');
+      expect(menuButton).not.toHaveAttribute('tabindex', '-1');
+
+      // Buttons should be enabled (not disabled)
+      expect(backButton).not.toBeDisabled();
+      expect(menuButton).not.toBeDisabled();
+
+      // Elements should be buttons (implicitly keyboard accessible)
+      expect(backButton.tagName).toBe('BUTTON');
+      expect(menuButton.tagName).toBe('BUTTON');
     });
   });
 

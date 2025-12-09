@@ -51,7 +51,7 @@ describe('Complete User Flow Integration Tests', () => {
       expect(screen.getByText(/what do you want to make/i)).toBeInTheDocument();
 
       // Step 2: Fill in project details
-      const promptInput = screen.getByPlaceholderText(/Describe the idea you want to build/i);
+      const promptInput = screen.getByPlaceholderText(/e\.g\., A task management app/i);
       await user.type(promptInput, 'A task management app');
 
       await waitForAnimation(ANIMATION_DURATIONS.SHORT);
@@ -96,7 +96,7 @@ describe('Complete User Flow Integration Tests', () => {
       });
 
       // Try to submit without entering a prompt
-      const promptInput = screen.getByPlaceholderText(/Describe the idea you want to build/i);
+      const promptInput = screen.getByPlaceholderText(/e\.g\., A task management app/i);
 
       // Focus and press Enter without typing
       await user.click(promptInput);
@@ -122,7 +122,7 @@ describe('Complete User Flow Integration Tests', () => {
       });
 
       // Start filling form
-      const promptInput = screen.getByPlaceholderText(/Describe the idea you want to build/i);
+      const promptInput = screen.getByPlaceholderText(/e\.g\., A task management app/i);
       await user.type(promptInput, 'A mobile game');
 
       await waitForAnimation();
@@ -155,7 +155,7 @@ describe('Complete User Flow Integration Tests', () => {
       await waitForAnimation();
 
       // Form should be reset or preserved based on implementation
-      expect(screen.getByPlaceholderText(/Describe the idea you want to build/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/e\.g\., A task management app/i)).toBeInTheDocument();
     });
   });
 
@@ -348,7 +348,7 @@ describe('Complete User Flow Integration Tests', () => {
         </MobileLayout>
       );
 
-      const promptInput = screen.getByPlaceholderText(/Describe the idea you want to build/i);
+      const promptInput = screen.getByPlaceholderText(/e\.g\., A task management app/i);
       await user.type(promptInput, 'A deployment testing app');
 
       await waitForAnimation();
@@ -409,7 +409,7 @@ describe('Complete User Flow Integration Tests', () => {
         </MobileLayout>
       );
 
-      const promptInput = screen.getByPlaceholderText(/Describe the idea you want to build/i);
+      const promptInput = screen.getByPlaceholderText(/e\.g\., A task management app/i);
       await user.type(promptInput, 'A shopping cart app');
 
       await waitForAnimation();
@@ -435,7 +435,7 @@ describe('Complete User Flow Integration Tests', () => {
       await waitForAnimation();
 
       // Should handle gracefully (either preserve or reset form)
-      expect(screen.getByPlaceholderText(/Describe the idea you want to build/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/e\.g\., A task management app/i)).toBeInTheDocument();
     });
   });
 

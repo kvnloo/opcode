@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { api, type ProcessInfo, type Session } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatISOTimestamp } from "@/lib/date-utils";
+import { isMobileDevice } from "@/lib/mobile/platform";
 
 interface RunningClaudeSessionsProps {
   /**
@@ -30,8 +31,14 @@ export const RunningClaudeSessions: React.FC<RunningClaudeSessionsProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Skip polling on mobile - these commands aren't available on Android/iOS
+    if (isMobileDevice()) {
+      setLoading(false);
+      return;
+    }
+
     loadRunningSessions();
-    
+
     // Poll for updates every 5 seconds
     const interval = setInterval(loadRunningSessions, 5000);
     return () => clearInterval(interval);

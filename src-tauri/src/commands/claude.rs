@@ -5,10 +5,11 @@ use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
+use notify::{Watcher, RecursiveMode, Event, EventKind};
 
 
 /// Global state to track current Claude process
@@ -2137,7 +2138,7 @@ pub async fn validate_hook_command(command: String) -> Result<serde_json::Value,
     cmd.arg("-n") // Syntax check only
        .arg("-c")
        .arg(&command);
-    
+
     match cmd.output() {
         Ok(output) => {
             if output.status.success() {
@@ -2155,4 +2156,64 @@ pub async fn validate_hook_command(command: String) -> Result<serde_json::Value,
         }
         Err(e) => Err(format!("Failed to validate command: {}", e))
     }
+}
+
+/// Struct to hold watcher state
+pub struct SessionWatcher {
+    _watcher: notify::RecommendedWatcher,
+}
+
+/// Function to start watching for session changes
+pub fn start_session_watcher(app_handle: tauri::AppHandle) -> Result<SessionWatcher, String> {
+    let claude_dir = dirs::home_dir()
+        .ok_or("Could not find home directory")?
+        .join(".claude")
+        .join("projects");
+
+    if !claude_dir.exists() {
+        std::fs::create_dir_all(&claude_dir)
+            .map_err(|e| format!("Failed to create .claude/projects: {}", e))?;
+    }
+
+    let app_handle_clone = app_handle.clone();
+
+    let mut watcher = notify::recommended_watcher(move |res: std::result::Result<Event, notify::Error>| {
+        match res {
+            Ok(event) => {
+                match event.kind {
+                    EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {
+                        log::debug!("Session file change detected: {:?}", event.paths);
+                        // Emit event to frontend
+                        let _ = app_handle_clone.emit("claude-session-changed", ());
+                    }
+                    _ => {}
+                }
+            }
+            Err(e) => log::error!("Watch error: {:?}", e),
+        }
+    }).map_err(|e| format!("Failed to create watcher: {}", e))?;
+
+    watcher.watch(&claude_dir, RecursiveMode::Recursive)
+        .map_err(|e| format!("Failed to watch directory: {}", e))?;
+
+    log::info!("Started watching for Claude sessions at: {:?}", claude_dir);
+
+    Ok(SessionWatcher { _watcher: watcher })
+}
+
+/// Polling fallback for platforms without inotify
+#[tauri::command]
+pub async fn start_session_polling(app_handle: tauri::AppHandle) {
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(Duration::from_secs(30));
+            let _ = app_handle.emit("claude-session-changed", ());
+        }
+    });
+}
+
+/// Command to discover sessions (alias for list_projects)
+#[tauri::command]
+pub async fn discover_sessions() -> Result<Vec<Project>, String> {
+    list_projects().await
 }

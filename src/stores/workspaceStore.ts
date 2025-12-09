@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
 import type { StateCreator } from 'zustand';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 // Workspace pane types
 type WorkspacePane = 'console' | 'agent' | 'deploy' | 'share' | 'preview';
@@ -38,6 +40,7 @@ interface WorkspaceState {
   // Navigation
   activePane: WorkspacePane;
   toolsOverlayOpen: boolean;
+  activeToolPane: string | null;
 
   // Agent state
   agentStatus: 'idle' | 'running' | 'error' | 'complete';
@@ -62,16 +65,19 @@ interface WorkspaceState {
   setActivePane: (pane: WorkspacePane) => void;
   openToolsOverlay: () => void;
   closeToolsOverlay: () => void;
+  setActiveToolPane: (paneId: string | null) => void;
+  closeToolPane: () => void;
 
   // Agent actions
-  startAgent: (taskDescription: string) => void;
-  stopAgent: () => void;
+  startAgent: (taskDescription: string) => Promise<string>;
+  stopAgent: () => Promise<void>;
   addTask: (task: Task) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   addCheckpoint: (checkpoint: Checkpoint) => void;
   rollbackToCheckpoint: (checkpointId: string) => void;
   incrementWorkDuration: () => void;
   clearTasks: () => void;
+  initAgentListeners: () => Promise<void>;
 
   // Preview actions
   setPreviewUrl: (url: string) => void;
@@ -99,6 +105,7 @@ const workspaceStore: StateCreator<
   currentProject: null,
   activePane: 'agent',
   toolsOverlayOpen: false,
+  activeToolPane: null,
   agentStatus: 'idle',
   tasks: [],
   currentTaskId: null,
@@ -135,37 +142,65 @@ const workspaceStore: StateCreator<
 
   closeToolsOverlay: () => set({ toolsOverlayOpen: false }),
 
-  // Agent actions
-  startAgent: (taskDescription: string) => {
-    const taskId = `task-${Date.now()}`;
-    const task: Task = {
-      id: taskId,
-      title: taskDescription,
-      description: taskDescription,
-      status: 'running',
-      progress: { current: 0, total: 100 },
-      fileEdits: [],
-      startedAt: new Date()
-    };
+  setActiveToolPane: (paneId) => set({ activeToolPane: paneId }),
 
-    set((state) => ({
-      agentStatus: 'running',
-      tasks: [task, ...state.tasks],
-      currentTaskId: taskId,
-      workDurationSeconds: 0
-    }));
+  closeToolPane: () => set({ activeToolPane: null }),
+
+  // Agent actions
+  startAgent: async (taskDescription: string) => {
+    set({ agentStatus: 'running' });
+    try {
+      const { currentProject } = get();
+      if (!currentProject) {
+        throw new Error('No project selected');
+      }
+
+      // Call backend to start agent task
+      const taskId = await invoke<string>('start_agent_task', {
+        projectPath: currentProject.path,
+        description: taskDescription,
+      });
+
+      const task: Task = {
+        id: taskId,
+        title: taskDescription,
+        description: taskDescription,
+        status: 'running',
+        progress: { current: 0, total: 100 },
+        fileEdits: [],
+        startedAt: new Date(),
+      };
+
+      set((state) => ({
+        tasks: [task, ...state.tasks],
+        currentTaskId: taskId,
+        workDurationSeconds: 0,
+      }));
+
+      return taskId;
+    } catch (error) {
+      set({ agentStatus: 'error' });
+      throw error;
+    }
   },
 
-  stopAgent: () => {
+  stopAgent: async () => {
     const { currentTaskId } = get();
     if (currentTaskId) {
+      try {
+        // Call backend to stop agent task
+        await invoke('stop_agent_task', { taskId: currentTaskId });
+      } catch (error) {
+        console.error('Failed to stop agent:', error);
+      }
+
       set((state) => ({
         agentStatus: 'idle',
         tasks: state.tasks.map((task) =>
           task.id === currentTaskId && task.status === 'running'
             ? { ...task, status: 'error', error: 'Cancelled by user', completedAt: new Date() }
             : task
-        )
+        ),
       }));
     } else {
       set({ agentStatus: 'idle' });
@@ -346,12 +381,59 @@ const workspaceStore: StateCreator<
     });
   },
 
+  // Subscribe to agent events
+  initAgentListeners: async () => {
+    // Listen for agent progress updates
+    await listen('agent-progress', (event: any) => {
+      const { taskId, progress, status } = event.payload;
+      set((state) => ({
+        tasks: state.tasks.map((t) =>
+          t.id === taskId ? { ...t, progress, status } : t
+        ),
+      }));
+    });
+
+    // Listen for agent output
+    await listen('agent-output', (event: any) => {
+      const { taskId, output } = event.payload;
+      // Update task with output (you might want to store output in Task interface)
+      console.log(`Agent output for task ${taskId}:`, output);
+    });
+
+    // Listen for agent completion
+    await listen('agent-complete', (event: any) => {
+      const { taskId } = event.payload;
+      set((state) => ({
+        agentStatus: state.currentTaskId === taskId ? 'complete' : state.agentStatus,
+        tasks: state.tasks.map((t) =>
+          t.id === taskId
+            ? { ...t, status: 'completed', completedAt: new Date() }
+            : t
+        ),
+      }));
+    });
+
+    // Listen for agent errors
+    await listen('agent-error', (event: any) => {
+      const { taskId, error } = event.payload;
+      set((state) => ({
+        agentStatus: state.currentTaskId === taskId ? 'error' : state.agentStatus,
+        tasks: state.tasks.map((t) =>
+          t.id === taskId
+            ? { ...t, status: 'error', error, completedAt: new Date() }
+            : t
+        ),
+      }));
+    });
+  },
+
   // Reset workspace
   resetWorkspace: () => {
     set({
       currentProject: null,
       activePane: 'agent',
       toolsOverlayOpen: false,
+      activeToolPane: null,
       agentStatus: 'idle',
       tasks: [],
       currentTaskId: null,
@@ -384,6 +466,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 // Selector hooks for commonly used state
 export const useCurrentProject = () => useWorkspaceStore((state) => state.currentProject);
 export const useActivePane = () => useWorkspaceStore((state) => state.activePane);
+export const useActiveToolPane = () => useWorkspaceStore((state) => state.activeToolPane);
 export const useAgentStatus = () => useWorkspaceStore((state) => state.agentStatus);
 export const useTasks = () => useWorkspaceStore((state) => state.tasks);
 export const useCurrentTask = () => {

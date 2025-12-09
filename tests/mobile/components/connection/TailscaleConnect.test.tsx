@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '../../utils/renderWithProviders';
+import { render, screen, fireEvent } from '../../utils/renderWithProviders';
 import { TailscaleConnect } from '../../../../src/components/mobile/connection/TailscaleConnect';
 import userEvent from '@testing-library/user-event';
 
@@ -55,27 +55,23 @@ describe('TailscaleConnect', () => {
       expect(button).toBeDisabled();
     });
 
-    it('enables submit button when both fields are filled', async () => {
-      const user = userEvent.setup();
+    it('enables submit button when both fields are filled', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
       const usernameInput = screen.getByPlaceholderText('Username');
 
-      await user.click(hostInput);
-      await user.keyboard('100.64.0.5');
-      await user.click(usernameInput);
-      await user.keyboard('testuser');
+      fireEvent.change(hostInput, { target: { value: '100.64.0.5' } });
+      fireEvent.change(usernameInput, { target: { value: 'testuser' } });
 
       const button = screen.getByRole('button', { name: /connect via tailscale/i });
       expect(button).not.toBeDisabled();
     });
 
     it('prevents submission with empty fields', async () => {
-      const user = userEvent.setup();
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
-      const button = screen.getByText('Connect via Tailscale');
+      const button = screen.getByRole('button', { name: /connect via tailscale/i });
 
       // Button is disabled, so click won't trigger
       expect(button).toBeDisabled();
@@ -87,67 +83,61 @@ describe('TailscaleConnect', () => {
   });
 
   describe('User Input', () => {
-    it('updates host input value', async () => {
-      const user = userEvent.setup();
+    it('updates host input value', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
-      await user.type(hostInput, '192.168.1.100');
+      fireEvent.change(hostInput, { target: { value: '192.168.1.100' } });
 
       expect(hostInput).toHaveValue('192.168.1.100');
     });
 
-    it('updates username input value', async () => {
-      const user = userEvent.setup();
+    it('updates username input value', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const usernameInput = screen.getByPlaceholderText('Username');
-      await user.type(usernameInput, 'admin');
+      fireEvent.change(usernameInput, { target: { value: 'admin' } });
 
       expect(usernameInput).toHaveValue('admin');
     });
 
-    it('allows clearing and re-entering values', async () => {
-      const user = userEvent.setup();
+    it('allows clearing and re-entering values', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
 
-      await user.type(hostInput, '100.64.0.5');
+      fireEvent.change(hostInput, { target: { value: '100.64.0.5' } });
       expect(hostInput).toHaveValue('100.64.0.5');
 
-      await user.clear(hostInput);
+      fireEvent.change(hostInput, { target: { value: '' } });
       expect(hostInput).toHaveValue('');
 
-      await user.type(hostInput, '192.168.1.1');
+      fireEvent.change(hostInput, { target: { value: '192.168.1.1' } });
       expect(hostInput).toHaveValue('192.168.1.1');
     });
   });
 
   describe('Connection Callbacks', () => {
-    it('calls onConnect with host and username when form is submitted', async () => {
-      const user = userEvent.setup();
+    it('calls onConnect with host and username when form is submitted', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
       const usernameInput = screen.getByPlaceholderText('Username');
 
-      await user.click(hostInput);
-      await user.keyboard('100.64.0.5');
-      await user.click(usernameInput);
-      await user.keyboard('testuser');
+      fireEvent.change(hostInput, { target: { value: '100.64.0.5' } });
+      fireEvent.change(usernameInput, { target: { value: 'testuser' } });
 
       const button = screen.getByRole('button', { name: /connect via tailscale/i });
-      await user.click(button);
+      fireEvent.click(button);
 
       expect(mockOnConnect).toHaveBeenCalledWith('100.64.0.5', 'testuser');
       expect(mockOnConnect).toHaveBeenCalledTimes(1);
     });
 
-    it('does not call onConnect when fields are empty', async () => {
+    it('does not call onConnect when fields are empty', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
-      const button = screen.getByText('Connect via Tailscale');
+      const button = screen.getByRole('button', { name: /connect via tailscale/i });
       expect(button).toBeDisabled();
 
       expect(mockOnConnect).not.toHaveBeenCalled();
@@ -263,36 +253,32 @@ describe('TailscaleConnect', () => {
   });
 
   describe('Edge Cases', () => {
-    it('handles rapid input changes', async () => {
-      const user = userEvent.setup();
+    it('handles rapid input changes', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
-
-      await user.type(hostInput, 'abc');
+      fireEvent.change(hostInput, { target: { value: 'abc' } });
 
       expect(hostInput).toHaveValue('abc');
     });
 
-    it('handles special characters in input', async () => {
-      const user = userEvent.setup();
+    it('handles special characters in input', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} />);
 
       const usernameInput = screen.getByPlaceholderText('Username');
-      await user.type(usernameInput, 'user@example.com');
+      fireEvent.change(usernameInput, { target: { value: 'user@example.com' } });
 
       expect(usernameInput).toHaveValue('user@example.com');
     });
 
-    it('maintains state during isConnecting transition', async () => {
-      const user = userEvent.setup();
+    it('maintains state during isConnecting transition', () => {
       render(<TailscaleConnect onConnect={mockOnConnect} isConnecting={false} />);
 
       const hostInput = screen.getByPlaceholderText('Tailscale IP (e.g., 100.64.0.5)');
       const usernameInput = screen.getByPlaceholderText('Username');
 
-      await user.type(hostInput, '100.64.0.5');
-      await user.type(usernameInput, 'testuser');
+      fireEvent.change(hostInput, { target: { value: '100.64.0.5' } });
+      fireEvent.change(usernameInput, { target: { value: 'testuser' } });
 
       // Component maintains internal state, so values should be present
       expect(hostInput).toHaveValue('100.64.0.5');

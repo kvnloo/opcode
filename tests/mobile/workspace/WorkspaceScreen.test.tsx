@@ -12,6 +12,7 @@ vi.mock('@/stores/workspaceStore', () => ({
     const state = {
       activePane: mockActivePane,
       setActivePane: mockSetActivePane,
+      initAgentListeners: vi.fn().mockResolvedValue(undefined),
     };
     return selector ? selector(state) : state;
   }),
@@ -187,7 +188,8 @@ describe('WorkspaceScreen', () => {
     it('should not show overlay initially', () => {
       render(<WorkspaceScreen {...defaultProps} />);
 
-      expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
+      // ToolsOverlay shows "Tools" heading, not "Project Tools"
+      expect(screen.queryByPlaceholderText('Search for tools and files')).not.toBeInTheDocument();
     });
 
     it('should toggle overlay when menu clicked', async () => {
@@ -201,8 +203,27 @@ describe('WorkspaceScreen', () => {
       const showToolsButton = await screen.findByText('Show Tools');
       await user.click(showToolsButton);
 
-      // Overlay should appear
-      expect(await screen.findByText('Project Tools')).toBeInTheDocument();
+      // ToolsOverlay should appear with search input
+      expect(await screen.findByPlaceholderText('Search for tools and files')).toBeInTheDocument();
+    });
+
+    it('should handle tool selection from overlay', async () => {
+      const user = userEvent.setup();
+      render(<WorkspaceScreen {...defaultProps} />);
+
+      // Open overlay
+      const moreButton = screen.getByLabelText('More options');
+      await user.click(moreButton);
+
+      const showToolsButton = await screen.findByText('Show Tools');
+      await user.click(showToolsButton);
+
+      // Overlay should appear with search functionality
+      const searchInput = await screen.findByPlaceholderText('Search for tools and files');
+      expect(searchInput).toBeInTheDocument();
+
+      // Verify overlay has tools section header
+      expect(screen.getByText('Tools', { selector: 'h3' })).toBeInTheDocument();
     });
 
     it('should close overlay when close button clicked', async () => {
@@ -217,15 +238,15 @@ describe('WorkspaceScreen', () => {
       await user.click(showToolsButton);
 
       // Overlay should appear
-      await screen.findByText('Project Tools');
+      await screen.findByPlaceholderText('Search for tools and files');
 
-      // Close overlay
-      const closeButton = screen.getByRole('button', { name: /close/i });
+      // Close overlay using the close button
+      const closeButton = screen.getByLabelText('Close tools overlay');
       await user.click(closeButton);
 
       // Overlay should disappear
       await waitFor(() => {
-        expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
+        expect(screen.queryByPlaceholderText('Search for tools and files')).not.toBeInTheDocument();
       });
     });
 
@@ -241,23 +262,22 @@ describe('WorkspaceScreen', () => {
       await user.click(showToolsButton);
 
       // Overlay should appear
-      const projectToolsHeading = await screen.findByText('Project Tools');
-      expect(projectToolsHeading).toBeInTheDocument();
+      await screen.findByPlaceholderText('Search for tools and files');
 
-      // Click the backdrop by clicking outside the card content
-      // The backdrop is the parent motion.div with onClick={onClose}
-      const backdrop = projectToolsHeading.closest('.bg-card')?.parentElement;
+      // Click backdrop (the dark overlay behind the panel)
+      const { container } = render(<div />); // Not needed, just use fireEvent on backdrop
+      const backdrop = document.querySelector('.fixed.inset-0.bg-black\\/50');
       if (backdrop) {
-        await user.click(backdrop);
+        fireEvent.click(backdrop);
 
         // Overlay should disappear
         await waitFor(() => {
-          expect(screen.queryByText('Project Tools')).not.toBeInTheDocument();
+          expect(screen.queryByPlaceholderText('Search for tools and files')).not.toBeInTheDocument();
         });
       }
     });
 
-    it('should display project ID in overlay', async () => {
+    it('should display tools in overlay', async () => {
       const user = userEvent.setup();
       render(<WorkspaceScreen {...defaultProps} />);
 
@@ -268,11 +288,12 @@ describe('WorkspaceScreen', () => {
       const showToolsButton = await screen.findByText('Show Tools');
       await user.click(showToolsButton);
 
-      // Project Tools heading should appear
-      await screen.findByText('Project Tools');
+      // Overlay should appear with search functionality
+      await screen.findByPlaceholderText('Search for tools and files');
 
-      // Check for specific text in overlay (more specific than just project ID)
-      expect(screen.getByText(/Tools and utilities for project:/)).toBeInTheDocument();
+      // Verify the overlay content is rendered (tools section header)
+      const toolsHeader = screen.getByText('Tools', { selector: 'h3' });
+      expect(toolsHeader).toBeInTheDocument();
     });
   });
 

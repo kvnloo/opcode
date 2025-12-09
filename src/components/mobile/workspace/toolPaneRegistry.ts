@@ -1,0 +1,61 @@
+import { ComponentType } from 'react';
+import { AppStoragePane } from './panes/AppStoragePane';
+import { AuthUsersPane } from './panes/AuthUsersPane';
+import { DevToolsPane } from './panes/DevToolsPane';
+import { IntegrationsPane } from './panes/IntegrationsPane';
+import { KeyValueStorePane } from './panes/KeyValueStorePane';
+import { MultiplayerPane } from './panes/MultiplayerPane';
+import { SecretsPane } from './panes/SecretsPane';
+import { SecurityScannerPane } from './panes/SecurityScannerPane';
+import { WorkflowsPane } from './panes/WorkflowsPane';
+
+/**
+ * Props interface for tool pane components
+ * All tool panes accept an optional className prop for styling
+ */
+export interface ToolPaneProps {
+  className?: string;
+}
+
+/**
+ * Registry mapping tool IDs (from ToolsOverlay TOOLS array) to their corresponding pane components
+ * This ensures type-safe routing from tool selection to pane rendering in WorkspaceScreen
+ */
+export const TOOL_PANE_REGISTRY: Record<string, ComponentType<ToolPaneProps>> = {
+  'storage': AppStoragePane,
+  'auth': AuthUsersPane,
+  'developer': DevToolsPane,
+  'integrations': IntegrationsPane,
+  'kv-store': KeyValueStorePane,
+  'multiplayer': MultiplayerPane,
+  'secrets': SecretsPane,
+  'security': SecurityScannerPane,
+  'workflows': WorkflowsPane,
+};
+
+/**
+ * Check if a tool ID corresponds to a registered pane component
+ * @param toolId - The tool ID from ToolsOverlay
+ * @returns true if the tool has a registered pane component
+ */
+export const isToolPane = (toolId: string): boolean => {
+  return toolId in TOOL_PANE_REGISTRY;
+};
+
+/**
+ * Get the pane component for a given tool ID
+ * @param toolId - The tool ID from ToolsOverlay
+ * @returns The pane component or null if not found
+ */
+export const getToolPane = (toolId: string): ComponentType<ToolPaneProps> | null => {
+  return TOOL_PANE_REGISTRY[toolId] || null;
+};
+
+/**
+ * Get all registered tool IDs
+ * Useful for validation and testing
+ * @returns Array of all registered tool IDs
+ */
+export const getRegisteredToolIds = (): string[] => {
+  return Object.keys(TOOL_PANE_REGISTRY);
+};

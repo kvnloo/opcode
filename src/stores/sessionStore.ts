@@ -3,6 +3,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import type { StateCreator } from 'zustand';
 import { api } from '@/lib/api';
 import type { Session, Project } from '@/lib/api';
+import { listen } from '@tauri-apps/api/event';
 
 interface SessionState {
   // Projects and sessions data
@@ -189,3 +190,11 @@ const sessionStore: StateCreator<
 export const useSessionStore = create<SessionState>()(
   subscribeWithSelector(sessionStore)
 );
+
+// Session event listener initialization
+export const initSessionListener = async () => {
+  await listen('claude-session-changed', async () => {
+    const store = useSessionStore.getState();
+    await store.fetchProjects();
+  });
+};

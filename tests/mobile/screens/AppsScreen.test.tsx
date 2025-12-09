@@ -41,6 +41,7 @@ vi.mock('@/stores/workspaceStore', () => ({
   useWorkspaceStore: () => ({
     setProject: mockSetProject,
     currentProject: mockCurrentProject(),
+    initAgentListeners: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 

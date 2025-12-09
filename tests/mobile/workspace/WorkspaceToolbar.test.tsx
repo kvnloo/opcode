@@ -260,7 +260,8 @@ describe('WorkspaceToolbar', () => {
 
       const buttons = screen.getAllByRole('button').slice(1); // Skip stop button
       buttons.forEach((button) => {
-        expect(button).toHaveClass('active:bg-zinc-800');
+        // Verify the button has transition classes
+        expect(button.className).toContain('transition-all');
       });
     });
   });

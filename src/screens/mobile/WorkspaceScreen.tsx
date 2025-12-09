@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, MoreVertical, Terminal, Bot, Rocket, Share2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AgentPaneContainer } from '@/components/mobile/workspace/panes/AgentPaneContainer';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { ToolsOverlay } from '@/components/mobile/workspace/ToolsOverlay';
+import { AppStoragePane } from '@/components/mobile/workspace/panes/AppStoragePane';
+import { AuthUsersPane } from '@/components/mobile/workspace/panes/AuthUsersPane';
+import { DevToolsPane } from '@/components/mobile/workspace/panes/DevToolsPane';
+import { IntegrationsPane } from '@/components/mobile/workspace/panes/IntegrationsPane';
+import { KeyValueStorePane } from '@/components/mobile/workspace/panes/KeyValueStorePane';
+import { MultiplayerPane } from '@/components/mobile/workspace/panes/MultiplayerPane';
+import { SecretsPane } from '@/components/mobile/workspace/panes/SecretsPane';
+import { SecurityScannerPane } from '@/components/mobile/workspace/panes/SecurityScannerPane';
+import { WorkflowsPane } from '@/components/mobile/workspace/panes/WorkflowsPane';
 
 // Workspace pane types
 export type WorkspacePane = 'console' | 'agent' | 'deploy' | 'share' | 'preview';
@@ -36,11 +46,32 @@ interface WorkspaceScreenProps {
   onBack: () => void;
 }
 
+// Tool pane component map
+// All tool panes now have consistent projectId, onBack, and className props
+const TOOL_PANE_MAP: Record<string, React.ComponentType<{projectId: string; onBack: () => void}>> = {
+  'storage': AppStoragePane,
+  'auth': AuthUsersPane,
+  'developer': DevToolsPane,
+  'integrations': IntegrationsPane,
+  'kv-store': KeyValueStorePane,
+  'multiplayer': MultiplayerPane,
+  'secrets': SecretsPane,
+  'security': SecurityScannerPane,
+  'workflows': WorkflowsPane,
+};
+
 export function WorkspaceScreen({ projectId, projectName, onBack }: WorkspaceScreenProps) {
   // Use workspace store for activePane to sync across tests and app
   const activePane = useWorkspaceStore((state) => state.activePane);
   const setActivePane = useWorkspaceStore((state) => state.setActivePane);
+  const initAgentListeners = useWorkspaceStore((state) => state.initAgentListeners);
   const [showToolsOverlay, setShowToolsOverlay] = useState(false);
+  const [activeToolPane, setActiveToolPane] = useState<string | null>(null);
+
+  // Initialize agent event listeners on mount
+  useEffect(() => {
+    initAgentListeners();
+  }, [initAgentListeners]);
 
   const handlePaneChange = useCallback((pane: WorkspacePane) => {
     setActivePane(pane);
@@ -48,6 +79,15 @@ export function WorkspaceScreen({ projectId, projectName, onBack }: WorkspaceScr
 
   const handleToolsToggle = useCallback(() => {
     setShowToolsOverlay((prev) => !prev);
+  }, []);
+
+  const handleToolSelect = useCallback((toolId: string) => {
+    setActiveToolPane(toolId);
+    setShowToolsOverlay(false);
+  }, []);
+
+  const handleToolPaneBack = useCallback(() => {
+    setActiveToolPane(null);
   }, []);
 
   return (
@@ -61,26 +101,42 @@ export function WorkspaceScreen({ projectId, projectName, onBack }: WorkspaceScr
 
       {/* Active Pane Content */}
       <div className="flex-1 overflow-hidden relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activePane}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-            className="h-full w-full"
-          >
-            {renderPaneContent(activePane, projectId)}
-          </motion.div>
-        </AnimatePresence>
+        {activeToolPane ? (
+          // Render active tool pane
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeToolPane}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full w-full"
+            >
+              {renderToolPane(activeToolPane, projectId, handleToolPaneBack)}
+            </motion.div>
+          </AnimatePresence>
+        ) : (
+          // Render normal workspace pane
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activePane}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full w-full"
+            >
+              {renderPaneContent(activePane, projectId)}
+            </motion.div>
+          </AnimatePresence>
+        )}
 
         {/* Tools Overlay */}
-        {showToolsOverlay && (
-          <ToolsOverlay
-            onClose={() => setShowToolsOverlay(false)}
-            projectId={projectId}
-          />
-        )}
+        <ToolsOverlay
+          isOpen={showToolsOverlay}
+          onClose={() => setShowToolsOverlay(false)}
+          onToolSelect={handleToolSelect}
+        />
       </div>
 
       {/* Bottom Toolbar */}
@@ -200,6 +256,13 @@ function renderPaneContent(pane: WorkspacePane, projectId: string) {
   }
 }
 
+// Tool Pane Renderer
+function renderToolPane(toolId: string, projectId: string, onBack: () => void) {
+  const PaneComponent = TOOL_PANE_MAP[toolId];
+  if (!PaneComponent) return null;
+  return <PaneComponent projectId={projectId} onBack={onBack} />;
+}
+
 // Placeholder Pane Components (to be implemented separately)
 function ConsolePane({ projectId }: { projectId: string }) {
   return (
@@ -256,56 +319,3 @@ function PreviewPane({ projectId }: { projectId: string }) {
   );
 }
 
-// Tools Overlay Component
-interface ToolsOverlayProps {
-  onClose: () => void;
-  projectId: string;
-}
-
-function ToolsOverlay({ onClose, projectId }: ToolsOverlayProps) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="absolute inset-0 bg-background/95 backdrop-blur-sm z-50"
-      onClick={onClose}
-    >
-      <div className="h-full flex items-center justify-center p-4">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          onClick={(e) => e.stopPropagation()}
-          className="bg-card border rounded-lg p-6 max-w-md w-full"
-        >
-          <h2 className="text-xl font-semibold mb-4">Project Tools</h2>
-          <p className="text-muted-foreground mb-4">
-            Tools and utilities for project: {projectId}
-          </p>
-          <div className="space-y-2">
-            <Button variant="outline" className="w-full justify-start">
-              File Manager
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              Git Status
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              Dependencies
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              Environment
-            </Button>
-          </div>
-          <Button
-            variant="ghost"
-            className="w-full mt-4"
-            onClick={onClose}
-          >
-            Close
-          </Button>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-}

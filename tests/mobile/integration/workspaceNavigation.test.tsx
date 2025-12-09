@@ -258,11 +258,11 @@ describe('Workspace Navigation Integration Tests', () => {
         expect(screen.getByText('Project Tools')).toBeInTheDocument();
       });
 
-      // Should show tool options
-      expect(screen.getByText('File Manager')).toBeInTheDocument();
-      expect(screen.getByText('Git Status')).toBeInTheDocument();
-      expect(screen.getByText('Dependencies')).toBeInTheDocument();
-      expect(screen.getByText('Environment')).toBeInTheDocument();
+      // Should show actual tools from ToolsOverlay component
+      expect(screen.getByTestId('tool-search')).toBeInTheDocument();
+      expect(screen.getByTestId('tool-files')).toBeInTheDocument();
+      expect(screen.getByTestId('tool-agent')).toBeInTheDocument();
+      expect(screen.getByTestId('tool-git')).toBeInTheDocument();
     });
   });
 

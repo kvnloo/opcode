@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor, act } from '@testing-library/react';
+import { screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { render } from '@/../tests/mobile/utils/renderWithProviders';
 import { waitForAnimation } from '@/../tests/mobile/utils/waitForAnimations';
 import { MobileLayout } from '@/layouts/MobileLayout';
@@ -19,6 +19,14 @@ vi.mock('@/stores/sessionStore', () => ({
   })),
 }));
 
+// Mock usePlatform to return mobile
+vi.mock('@/hooks/mobile/usePlatform', () => ({
+  usePlatform: () => 'mobile' as const,
+  useIsMobile: () => true,
+  useIsTablet: () => false,
+  useIsDesktop: () => false,
+}));
+
 describe('Navigation Integration Tests', () => {
   beforeEach(() => {
     // Reset workspace store before each test
@@ -35,65 +43,62 @@ describe('Navigation Integration Tests', () => {
 
   describe('Tab Navigation', () => {
     it('should switch between Apps, Create, and Account tabs', async () => {
-      let currentPane = 'apps';
-      const handlePaneChange = vi.fn((pane) => {
-        currentPane = pane;
-      });
+      const handlePaneChange = vi.fn();
 
-      const { rerender } = await act(async () => {
-        return render(
-          <MobileLayout activePane="apps" onPaneChange={handlePaneChange}>
-            <AppsScreen />
-          </MobileLayout>
-        );
-      });
+      const { rerender } = render(
+        <MobileLayout activePane="apps" onPaneChange={handlePaneChange}>
+          <AppsScreen />
+        </MobileLayout>
+      );
+
+      await waitForAnimation();
 
       // Verify Apps screen header is visible
-      expect(screen.getByText('Apps')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Apps' })).toBeInTheDocument();
 
       // Click Create tab
       const createButton = screen.getByLabelText('Create');
-      await act(async () => {
-        createButton.click();
-      });
+      fireEvent.click(createButton);
 
-      expect(handlePaneChange).toHaveBeenCalledWith('create');
+      await waitFor(() => {
+        expect(handlePaneChange).toHaveBeenCalledWith('create');
+      });
 
       // Rerender with Create pane
-      await act(async () => {
-        rerender(
-          <MobileLayout activePane="create" onPaneChange={handlePaneChange}>
-            <CreateScreen />
-          </MobileLayout>
-        );
-      });
+      rerender(
+        <MobileLayout activePane="create" onPaneChange={handlePaneChange}>
+          <CreateScreen />
+        </MobileLayout>
+      );
 
       await waitForAnimation();
 
       // Verify Create screen is visible
-      expect(screen.getByText(/New Project/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Create' })).toBeInTheDocument();
+      });
 
       // Click Account tab
       const accountButton = screen.getByLabelText('Account');
-      await act(async () => {
-        accountButton.click();
-      });
+      fireEvent.click(accountButton);
 
-      expect(handlePaneChange).toHaveBeenCalledWith('account');
+      await waitFor(() => {
+        expect(handlePaneChange).toHaveBeenCalledWith('account');
+      });
 
       // Rerender with Account pane
-      await act(async () => {
-        rerender(
-          <MobileLayout activePane="account" onPaneChange={handlePaneChange}>
-            <AccountScreen />
-          </MobileLayout>
-        );
-      });
+      rerender(
+        <MobileLayout activePane="account" onPaneChange={handlePaneChange}>
+          <AccountScreen />
+        </MobileLayout>
+      );
 
       await waitForAnimation();
 
       // Verify Account screen is visible
-      expect(screen.getByText(/Account/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Manage Account')).toBeInTheDocument();
+      });
     });
 
     it('should persist active tab state across navigation', async () => {
@@ -109,8 +114,12 @@ describe('Navigation Integration Tests', () => {
       );
 
       // Navigate to Create
-      screen.getByLabelText('Create').click();
-      expect(handlePaneChange).toHaveBeenCalledWith('create');
+      const createButton = screen.getByLabelText('Create');
+      fireEvent.click(createButton);
+
+      await waitFor(() => {
+        expect(handlePaneChange).toHaveBeenCalledWith('create');
+      });
 
       // Simulate remount (as if returning from background)
       rerender(
@@ -122,8 +131,10 @@ describe('Navigation Integration Tests', () => {
       await waitForAnimation();
 
       // Verify Create tab is still active
-      const createTab = screen.getByLabelText('Create').closest('button');
-      expect(createTab).toHaveClass('text-primary');
+      await waitFor(() => {
+        const createTab = screen.getByLabelText('Create');
+        expect(createTab).toHaveClass('text-primary');
+      });
     });
 
     it('should highlight correct tab based on active pane', async () => {
@@ -134,8 +145,10 @@ describe('Navigation Integration Tests', () => {
       );
 
       // Apps tab should be highlighted
-      const appsTab = screen.getByLabelText('Apps').closest('button');
-      expect(appsTab).toHaveClass('text-primary');
+      await waitFor(() => {
+        const appsTab = screen.getByLabelText('Apps');
+        expect(appsTab).toHaveClass('text-primary');
+      });
 
       // Switch to Account
       rerender(
@@ -147,8 +160,10 @@ describe('Navigation Integration Tests', () => {
       await waitForAnimation();
 
       // Account tab should be highlighted
-      const accountTab = screen.getByLabelText('Account').closest('button');
-      expect(accountTab).toHaveClass('text-primary');
+      await waitFor(() => {
+        const accountTab = screen.getByLabelText('Account');
+        expect(accountTab).toHaveClass('text-primary');
+      });
     });
   });
 
@@ -161,7 +176,7 @@ describe('Navigation Integration Tests', () => {
       );
 
       // Initially on Apps screen
-      expect(screen.getByText('Apps')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Apps' })).toBeInTheDocument();
 
       // Simulate selecting a project
       const mockProject = {
@@ -265,7 +280,8 @@ describe('Navigation Integration Tests', () => {
       );
 
       // Click Create tab
-      screen.getByLabelText(/Create/i).click();
+      const createButton = screen.getByLabelText('Create');
+      fireEvent.click(createButton);
 
       // Rerender with animation
       rerender(
@@ -278,7 +294,9 @@ describe('Navigation Integration Tests', () => {
       await waitForAnimation();
 
       // Content should be visible after animation
-      expect(screen.getByText(/New Project/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/what do you want to make/i)).toBeInTheDocument();
+      });
     });
 
     it('should animate workspace pane transitions', async () => {
@@ -320,7 +338,9 @@ describe('Navigation Integration Tests', () => {
       await waitForAnimation();
 
       // Should show Apps screen, not crash
-      expect(screen.getByText('Apps')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Apps' })).toBeInTheDocument();
+      });
 
       // Should be able to navigate normally
       rerender(
@@ -331,7 +351,9 @@ describe('Navigation Integration Tests', () => {
 
       await waitForAnimation();
 
-      expect(screen.getByText(/New Project/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/what do you want to make/i)).toBeInTheDocument();
+      });
     });
 
     it('should recover from failed workspace navigation', async () => {
@@ -365,7 +387,8 @@ describe('Navigation Integration Tests', () => {
       );
 
       // Navigate to Create
-      screen.getByLabelText('Create').click();
+      const createButton = screen.getByLabelText('Create');
+      fireEvent.click(createButton);
 
       rerender(
         <MobileLayout activePane="create">
@@ -376,7 +399,8 @@ describe('Navigation Integration Tests', () => {
       await waitForAnimation();
 
       // Navigate back to Apps
-      screen.getByLabelText('Apps').click();
+      const appsButton = screen.getByLabelText('Apps');
+      fireEvent.click(appsButton);
 
       rerender(
         <MobileLayout activePane="apps">
@@ -387,7 +411,9 @@ describe('Navigation Integration Tests', () => {
       await waitForAnimation();
 
       // Apps screen should be rendered (scroll position would be preserved by browser)
-      expect(screen.getByText('Apps')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Apps' })).toBeInTheDocument();
+      });
     });
 
     it('should preserve workspace pane selection when project changes', async () => {

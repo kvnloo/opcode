@@ -667,6 +667,7 @@ vi.mock('@/stores/workspaceStore', () => {
     rollbackToCheckpoint: vi.fn(),
     incrementWorkDuration: vi.fn(),
     clearTasks: vi.fn(),
+    initAgentListeners: vi.fn().mockResolvedValue(undefined),
     setPreviewUrl: vi.fn(),
     setDeviceFrame: vi.fn(),
     setPreviewLoading: vi.fn(),
